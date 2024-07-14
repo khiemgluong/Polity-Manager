@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -10,10 +11,13 @@ namespace KhiemLuong
     {
         // public PolityMemberFamily polityMemberFamily;
         public string polityName;
-        public PolityMember children;
         public bool polityLeader;
         public string factionName;
         public FamilyObject family;
+
+        public PolityMember father, mother;
+        public PolityMember partner;
+        public List<PolityMember> children;
         private void OnEnable()
         {
             OnFactionStateChange += OnFactionStateChanged;
@@ -29,14 +33,15 @@ namespace KhiemLuong
         }
     }
 
+    /// <summary>
+    /// This is the smallest polity unit, which refers to a surname that its members will carry
+    /// </summary>
     [Serializable]
-    public class PolityMemberFamily
+    public class FamilyObject
     {
-        public string name;
         public string surname;
         public PolityMember father, mother;
-        public PolityMember[] partners;
-        public PolityMember[] children;
+        public PolityMember partner;
+        public List<PolityMember> children;
     }
-
 }

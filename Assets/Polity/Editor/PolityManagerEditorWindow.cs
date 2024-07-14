@@ -13,14 +13,11 @@ namespace KhiemLuong
         private SerializedObject serializedPolityManager;
         private SerializedProperty familiesProperty;
 
-        private PolityMember polityMemberPrefab;
-        private PolityMember polityMemberProband;
 
-        private SerializedObject serializedPolityMember;
         private SerializedObject serializedPolityProband;
 
         private SerializedProperty familyProperty;
-        // public static List<string> familyNames = new List<string> { "Family 1", "Family 2", "Family 3" };
+        Vector2 scrollPosition = Vector2.zero;  // Make sure this is a class-level variable
         public static void ShowWindow()
         {
             // Get existing open window or if none, make a new one:
@@ -37,12 +34,13 @@ namespace KhiemLuong
         private int selectedIndex = -1;  // Default to no selection
         private string selectedFamilyName = "Select a family";  // Default text
         private string newFamilyName = "";
-        private int itemToDelete = -1; // Flag to mark index for deletion, initialized to an invalid index
-        private List<SerializedObject> nodes = new List<SerializedObject>();
+        private int itemToDelete = -1; // Flag to mark index for deletion, initialized to an invalid index        private List<SerializedObject> nodes = new List<SerializedObject>();
         private List<SerializedProperty> nodeFamilyProperties = new List<SerializedProperty>();
+        private List<SerializedObject> nodeGameObjects = new List<SerializedObject>();
+        private List<SerializedObject> nodePolityMembers = new List<SerializedObject>();
         private List<Rect> nodeRects = new List<Rect>();
-        private float nodeWidth = 404; // Reasonable width for each node
-        private float nodeHeight = 202; // Reasonable height for each node
+        private float nodeWidth = 250; // Reasonable width for each node
+        private float nodeHeight = 350; // Reasonable height for each node
         private int nodeSpacing = 10; // Spacing between nodes
 
         private GUIStyle nodeStyle;
@@ -75,8 +73,8 @@ namespace KhiemLuong
             }
             // Calculate dimensions for the panels
             float sidebarWidth = position.width * 0.2f;
-            float mainPanelWidth = position.width * 0.8f;
             float sidebarHeight = position.height * 0.5f;
+            float mainPanelWidth = position.width * 0.8f;
             float mainPanelHeight = position.height;
 
             serializedPolityManager.Update(); // Prepare the serialized object for editing
@@ -138,38 +136,17 @@ namespace KhiemLuong
             /*                                 MAIN PANEL                                 */
             /* -------------------------------------------------------------------------- */
             GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "Main Window", GUI.skin.window);
-            Vector2 scrollPosition = Vector2.zero;
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Width(mainPanelWidth), GUILayout.Height(mainPanelHeight));
-            EditorGUI.BeginChangeCheck();
-            polityMemberProband = EditorGUILayout.ObjectField("polityMemberProband", polityMemberProband, typeof(PolityMember), false) as PolityMember;
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (polityMemberProband != null && PrefabUtility.IsPartOfPrefabAsset(polityMemberProband))
-                {
-                    serializedPolityProband = new SerializedObject(polityMemberProband);
-                    familyProperty = serializedPolityProband.FindProperty("family");
-                }
-            }
-            if (polityMemberProband != null && serializedPolityProband != null)
-            {
-                serializedPolityProband.Update();  // Make sure to call Update before drawing properties
-                if (familyProperty != null)
-                {
-                    //Deserialize & Loop through each PolityMember of familyProperty which is FamilyObject , if any PolityMember is found, add it to a list of PolityMember called polityMembers
-                    // TraverseFamily(polityMemberProband);
-                }
-                // serializedPolityMember.ApplyModifiedProperties(); // Apply changes to serialized object
-            }
-
 
             if (GUILayout.Button("Add Node", GUILayout.Width(100)))
             {
                 AddNode();
             }
+            GUILayout.Box("", GUILayout.ExpandWidth(true), GUILayout.Height(2000)); // Adjust height as necessary for your canvas size
 
             BeginWindows();
-            for (int i = 0; i < nodes.Count; i++)
+
+            for (int i = 0; i < nodePolityMembers.Count; i++)
             {
                 nodeRects[i] = GUI.Window(i, nodeRects[i], DrawNodeWindow, "Node " + i);
             }
@@ -190,7 +167,8 @@ namespace KhiemLuong
         {
             Debug.Log("Attempting to add node...");
             // Simply add a null placeholder for new nodes
-            nodes.Add(null);
+            nodeGameObjects.Add(null);
+            nodePolityMembers.Add(null);
             nodeFamilyProperties.Add(null);
 
             Rect lastRect = new Rect(10, 10, nodeWidth, nodeHeight);
@@ -206,42 +184,66 @@ namespace KhiemLuong
         void DrawNodeWindow(int id)
         {
             // Start checking and updating the node
-            if (nodes[id] != null)
+            if (nodePolityMembers[id] != null)
             {
-                nodes[id].Update();  // Update the serialized object if it exists
+                nodePolityMembers[id].Update();
+                nodeGameObjects[id].Update();
             }
 
-            // Always show the ObjectField for PolityMember assignment or change
+            bool shouldDeleteNode = false;  // Flag to track node deletion
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            // The close button
+            if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
+                shouldDeleteNode = true;
+            GUILayout.EndHorizontal();
+            if (shouldDeleteNode)
+            {
+                Debug.LogError("Removing node at index: " + id);
+                // Properly handle the removal, ensuring no GUI calls are made post deletion
+                nodePolityMembers.RemoveAt(id);
+                nodeRects.RemoveAt(id);
+                nodeFamilyProperties.RemoveAt(id);
+                return;
+            }
+            /* -------------------------------------------------------------------------- */
+            /*                          PolityMember Object Field                         */
+            /* -------------------------------------------------------------------------- */
             EditorGUILayout.LabelField("Assign or Change PolityMember Prefab:");
-            PolityMember member = EditorGUILayout.ObjectField("PolityMember Prefab", nodes[id]?.targetObject as PolityMember, typeof(PolityMember), false) as PolityMember;
-
+            PolityMember member = EditorGUILayout.ObjectField("PolityMember", nodePolityMembers[id]?.targetObject as PolityMember, typeof(PolityMember), false) as PolityMember;
             // Check if a new PolityMember has been assigned or changed
-            if (member != null && PrefabUtility.IsPartOfPrefabAsset(member) && (nodes[id] == null || member != nodes[id].targetObject as PolityMember))
+            if (member != null && PrefabUtility.IsPartOfPrefabAsset(member.gameObject) && (nodePolityMembers[id] == null || member != nodePolityMembers[id].targetObject as PolityMember))
             {
-                nodes[id] = new SerializedObject(member);  // Reassign the node to the new PolityMember
-                nodeFamilyProperties[id] = nodes[id].FindProperty("family");  // Find and store the family property
+                nodePolityMembers[id] = new SerializedObject(member); // PolityMember
+                nodeGameObjects[id] = new SerializedObject(member.gameObject); // GameObject
+                nodeFamilyProperties[id] = nodePolityMembers[id].FindProperty("family");
             }
 
-            // Work with the potentially new node data
-            if (nodes[id] != null)
+            if (nodePolityMembers[id] != null)
             {
-                SerializedObject node = nodes[id];
+                SerializedObject node = nodePolityMembers[id];
                 SerializedProperty familyProperty = nodeFamilyProperties[id];
 
-                // Display and edit properties of the PolityMember
                 if (familyProperty != null)
                 {
                     EditorGUILayout.PropertyField(familyProperty, new GUIContent("Family Object"));
                 }
 
-                // Apply modifications and save functionality
-                node.ApplyModifiedProperties();
                 if (GUILayout.Button("Save Changes to Prefab"))
                 {
-                    SavePrefab(node.targetObject as GameObject);
+                    GameObject go = nodeGameObjects[id].targetObject as GameObject;
+                    if (go != null)
+                    {
+                        SavePrefab(go);
+                    }
+                    else
+                    {
+                        Debug.LogError("GameObject is null. Cannot save prefab.");
+                    }
                 }
 
-                node.ApplyModifiedProperties();  // Ensure all changes are applied
+                node.ApplyModifiedProperties();
+                nodeGameObjects[id].ApplyModifiedProperties();
             }
 
             GUI.DragWindow();

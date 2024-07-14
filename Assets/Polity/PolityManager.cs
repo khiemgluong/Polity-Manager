@@ -34,7 +34,7 @@ namespace KhiemLuong
                 Singleton = this;
                 DontDestroyOnLoad(gameObject);
             }
-            DeserializeMatrix();  
+            DeserializeMatrix();
             DisableInteractivity = true;
         }
 
@@ -172,22 +172,6 @@ namespace KhiemLuong
             public Transform town;
         }
 
-        [Serializable]
-        public class Lineage{
-            public FamilyObject[] families;
-        }
-
-        /// <summary>
-        /// This is the smallest polity unit, which refers to a surname that its members will carry
-        /// </summary>
-        [Serializable]
-        public class FamilyObject
-        {
-            public string surname;
-            public PolityMember father, mother;
-            public List<PolityMember> partners;
-            public List<PolityMember> children;
-        }
 
         public interface IPolityStateChangeListener
         {
