@@ -9,13 +9,17 @@ namespace KhiemLuong
     using static KhiemLuong.PolityManager;
     public class PolityManagerEditorWindow : EditorWindow
     {
-        private PolityObject[] polities;
         private PolityManager polityManager;
-        public List<PolityMember> polityMembers;
         private SerializedObject serializedPolityManager;
-        private SerializedProperty familitiesProperty;
+        private SerializedProperty familiesProperty;
 
+        private PolityMember polityMemberPrefab;
+        private PolityMember polityMemberProband;
 
+        private SerializedObject serializedPolityMember;
+        private SerializedObject serializedPolityProband;
+
+        private SerializedProperty familyProperty;
         // public static List<string> familyNames = new List<string> { "Family 1", "Family 2", "Family 3" };
         public static void ShowWindow()
         {
@@ -34,31 +38,41 @@ namespace KhiemLuong
         private string selectedFamilyName = "Select a family";  // Default text
         private string newFamilyName = "";
         private int itemToDelete = -1; // Flag to mark index for deletion, initialized to an invalid index
-        private PolityMember polityMemberPrefab;
-        private SerializedObject serializedPolityMember;
-        private SerializedProperty familyProperty;
+        private List<SerializedObject> nodes = new List<SerializedObject>();
+        private List<SerializedProperty> nodeFamilyProperties = new List<SerializedProperty>();
+        private List<Rect> nodeRects = new List<Rect>();
+        private float nodeWidth = 404; // Reasonable width for each node
+        private float nodeHeight = 202; // Reasonable height for each node
+        private int nodeSpacing = 10; // Spacing between nodes
+
+        private GUIStyle nodeStyle;
+
+        private void InitializeStyles()
+        {
+            Texture2D backgroundTexture = new Texture2D(1, 1);
+            backgroundTexture.SetPixel(0, 0, new Color(0.15f, 0.15f, 0.15f));  // Dark gray color
+            backgroundTexture.Apply();
+            nodeStyle = new GUIStyle(GUI.skin.box)
+            {
+                padding = new RectOffset(10, 10, 10, 10),
+                margin = new RectOffset(5, 5, 5, 5),
+                // Set the border as needed; adjust these values based on your needs
+                border = new RectOffset(4, 4, 4, 4),
+                // Use the custom background texture
+                normal = { background = backgroundTexture },
+            };
+        }
+
+        private List<PolityMember> polityMembers = new List<PolityMember>();
+
 
         void OnGUI()
         {
-            // if (polityManager != null && polityManager.polities != null)
-            // {
-            //     foreach (var polity in polityManager.polities)
-            //     {
-            //         EditorGUILayout.BeginVertical("box");
-            //         EditorGUILayout.LabelField("Name:", polity.name);
-            //         EditorGUILayout.LabelField("Factions:");
-            //         SerializedObject serializedObject = new SerializedObject(polityManager);
-            //         SerializedProperty factionsList = serializedObject.FindProperty("polities").GetArrayElementAtIndex(Array.IndexOf(polityManager.polities, polity)).FindPropertyRelative("name");
-            //         EditorGUILayout.PropertyField(factionsList, true);
-            //         serializedObject.ApplyModifiedProperties();
-            //         EditorGUILayout.EndVertical();
-            //     }
-            // }
-            // else
-            // {
-            //     EditorGUILayout.LabelField("No Polity Manager found.");
-            // }
 
+            if (nodeStyle == null)
+            {
+                InitializeStyles(); // Ensure styles are initialized
+            }
             // Calculate dimensions for the panels
             float sidebarWidth = position.width * 0.2f;
             float mainPanelWidth = position.width * 0.8f;
@@ -67,7 +81,9 @@ namespace KhiemLuong
 
             serializedPolityManager.Update(); // Prepare the serialized object for editing
 
-            // Families sidebar with interactive list
+            /* -------------------------------------------------------------------------- */
+            /*                                  FAMILIES                                  */
+            /* -------------------------------------------------------------------------- */
             GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "Families", GUI.skin.window);
             EditorGUILayout.BeginVertical();
 
@@ -81,11 +97,11 @@ namespace KhiemLuong
             EditorGUILayout.EndHorizontal();
 
             // List existing family names with a delete button and make them clickable
-            for (int i = 0; i < familitiesProperty.arraySize; i++)
+            for (int i = 0; i < familiesProperty.arraySize; i++)
             {
                 EditorGUILayout.BeginHorizontal();
-                SerializedProperty familyProp = familitiesProperty.GetArrayElementAtIndex(i);
-                SerializedProperty familyNameProp = familyProp.FindPropertyRelative("name"); // Access the 'name' field
+                SerializedProperty familyProp = familiesProperty.GetArrayElementAtIndex(i);
+                SerializedProperty familyNameProp = familyProp.FindPropertyRelative("surname"); // Access the 'name' field
                 string familyName = familyNameProp.stringValue; // Use stringValue to get the string value
 
                 if (GUILayout.Button(familyName, GUILayout.ExpandWidth(true)))
@@ -102,7 +118,6 @@ namespace KhiemLuong
 
                 EditorGUILayout.EndHorizontal();
             }
-
             // Handle deletion outside the loop
             if (itemToDelete != -1)
             {
@@ -112,52 +127,57 @@ namespace KhiemLuong
 
             EditorGUILayout.EndVertical();
             GUILayout.EndArea();
+            /* ------------------------------ FAMILIES END ------------------------------ */
 
             // Members sidebar
-            GUILayout.BeginArea(new Rect(0, sidebarHeight, sidebarWidth, sidebarHeight), "Members", GUI.skin.window);
-            GUILayout.Label("Content for Members");
-            GUILayout.EndArea();
+            // GUILayout.BeginArea(new Rect(0, sidebarHeight, sidebarWidth, sidebarHeight), "Members", GUI.skin.window);
+            // GUILayout.Label("Content for Members");
+            // GUILayout.EndArea();
 
-            // Main panel
-
+            /* -------------------------------------------------------------------------- */
+            /*                                 MAIN PANEL                                 */
+            /* -------------------------------------------------------------------------- */
             GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "Main Window", GUI.skin.window);
-
-            EditorGUILayout.LabelField("Select a PolityMember Prefab:");
+            Vector2 scrollPosition = Vector2.zero;
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.Width(mainPanelWidth), GUILayout.Height(mainPanelHeight));
             EditorGUI.BeginChangeCheck();
-            polityMemberPrefab = EditorGUILayout.ObjectField("PolityMember Prefab", polityMemberPrefab, typeof(PolityMember), false) as PolityMember;
+            polityMemberProband = EditorGUILayout.ObjectField("polityMemberProband", polityMemberProband, typeof(PolityMember), false) as PolityMember;
 
             if (EditorGUI.EndChangeCheck())
             {
-                if (polityMemberPrefab != null && PrefabUtility.IsPartOfPrefabAsset(polityMemberPrefab))
+                if (polityMemberProband != null && PrefabUtility.IsPartOfPrefabAsset(polityMemberProband))
                 {
-                    serializedPolityMember = new SerializedObject(polityMemberPrefab);
-                    familyProperty = serializedPolityMember.FindProperty("family");  // ensure 'familyObject' is the exact name of the property
+                    serializedPolityProband = new SerializedObject(polityMemberProband);
+                    familyProperty = serializedPolityProband.FindProperty("family");
                 }
             }
-
-            if (polityMemberPrefab != null && serializedPolityMember != null)
+            if (polityMemberProband != null && serializedPolityProband != null)
             {
-                serializedPolityMember.Update();  // Make sure to call Update before drawing properties
-
-                // Display and edit properties
+                serializedPolityProband.Update();  // Make sure to call Update before drawing properties
                 if (familyProperty != null)
                 {
-                    EditorGUILayout.PropertyField(familyProperty, new GUIContent("Family Object"));
+                    //Deserialize & Loop through each PolityMember of familyProperty which is FamilyObject , if any PolityMember is found, add it to a list of PolityMember called polityMembers
+                    // TraverseFamily(polityMemberProband);
                 }
-
-                serializedPolityMember.ApplyModifiedProperties(); // Apply changes to serialized object
-
-                if (GUILayout.Button("Save Changes to Prefab"))
-                {
-                    SavePrefab();
-                }
+                // serializedPolityMember.ApplyModifiedProperties(); // Apply changes to serialized object
             }
-            GUILayout.EndArea();
 
-            // Members sidebar
-            GUILayout.BeginArea(new Rect(0, sidebarHeight, sidebarWidth, sidebarHeight), "Members", GUI.skin.window);
-            GUILayout.Label("Content for Members");
+
+            if (GUILayout.Button("Add Node", GUILayout.Width(100)))
+            {
+                AddNode();
+            }
+
+            BeginWindows();
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                nodeRects[i] = GUI.Window(i, nodeRects[i], DrawNodeWindow, "Node " + i);
+            }
+            EndWindows();
+
+            EditorGUILayout.EndScrollView();
             GUILayout.EndArea();
+            /* ----------------------------- MAIN PANEL END ----------------------------- */
 
             // Update the serialized object if changes were made
             if (serializedPolityManager.ApplyModifiedProperties())
@@ -166,24 +186,80 @@ namespace KhiemLuong
             }
         }
 
-        private void SavePrefab()
+        private void AddNode()
         {
-            if (serializedPolityMember != null)
+            Debug.Log("Attempting to add node...");
+            // Simply add a null placeholder for new nodes
+            nodes.Add(null);
+            nodeFamilyProperties.Add(null);
+
+            Rect lastRect = new Rect(10, 10, nodeWidth, nodeHeight);
+            if (nodeRects.Count > 0)
             {
-                serializedPolityMember.ApplyModifiedProperties();
-                PrefabUtility.SaveAsPrefabAsset(polityMemberPrefab.gameObject, AssetDatabase.GetAssetPath(polityMemberPrefab.gameObject));
-                Debug.Log("Changes saved to prefab!");
+                lastRect = nodeRects[nodeRects.Count - 1];
+                lastRect.x += nodeWidth + nodeSpacing;
             }
+            nodeRects.Add(lastRect);
+            Debug.Log("Node added at position: " + lastRect);
         }
 
-        private void AddFamilyName(string name)
+        void DrawNodeWindow(int id)
         {
-            if (!string.IsNullOrWhiteSpace(name))
+            // Start checking and updating the node
+            if (nodes[id] != null)
             {
-                familitiesProperty.InsertArrayElementAtIndex(familitiesProperty.arraySize);
-                SerializedProperty newFamilyProp = familitiesProperty.GetArrayElementAtIndex(familitiesProperty.arraySize - 1);
-                SerializedProperty nameProp = newFamilyProp.FindPropertyRelative("name");
-                nameProp.stringValue = name; // Set the name of the new FamilyObject
+                nodes[id].Update();  // Update the serialized object if it exists
+            }
+
+            // Always show the ObjectField for PolityMember assignment or change
+            EditorGUILayout.LabelField("Assign or Change PolityMember Prefab:");
+            PolityMember member = EditorGUILayout.ObjectField("PolityMember Prefab", nodes[id]?.targetObject as PolityMember, typeof(PolityMember), false) as PolityMember;
+
+            // Check if a new PolityMember has been assigned or changed
+            if (member != null && PrefabUtility.IsPartOfPrefabAsset(member) && (nodes[id] == null || member != nodes[id].targetObject as PolityMember))
+            {
+                nodes[id] = new SerializedObject(member);  // Reassign the node to the new PolityMember
+                nodeFamilyProperties[id] = nodes[id].FindProperty("family");  // Find and store the family property
+            }
+
+            // Work with the potentially new node data
+            if (nodes[id] != null)
+            {
+                SerializedObject node = nodes[id];
+                SerializedProperty familyProperty = nodeFamilyProperties[id];
+
+                // Display and edit properties of the PolityMember
+                if (familyProperty != null)
+                {
+                    EditorGUILayout.PropertyField(familyProperty, new GUIContent("Family Object"));
+                }
+
+                // Apply modifications and save functionality
+                node.ApplyModifiedProperties();
+                if (GUILayout.Button("Save Changes to Prefab"))
+                {
+                    SavePrefab(node.targetObject as GameObject);
+                }
+
+                node.ApplyModifiedProperties();  // Ensure all changes are applied
+            }
+
+            GUI.DragWindow();
+        }
+        private void SavePrefab(GameObject prefab)
+        {
+            PrefabUtility.SaveAsPrefabAsset(prefab, AssetDatabase.GetAssetPath(prefab));
+            Debug.Log("Changes saved to prefab!");
+        }
+
+        private void AddFamilyName(string surname)
+        {
+            if (!string.IsNullOrWhiteSpace(surname))
+            {
+                familiesProperty.InsertArrayElementAtIndex(familiesProperty.arraySize);
+                SerializedProperty newFamilyProp = familiesProperty.GetArrayElementAtIndex(familiesProperty.arraySize - 1);
+                SerializedProperty nameProp = newFamilyProp.FindPropertyRelative("surname");
+                nameProp.stringValue = surname; // Set the name of the new FamilyObject
                 serializedPolityManager.ApplyModifiedProperties(); // Apply changes to ensure they're saved
                 newFamilyName = ""; // Clear the input field after adding
             }
@@ -191,14 +267,14 @@ namespace KhiemLuong
         // Method to set the polity objects from outside
         public void SetPolityObjects(PolityObject[] objects)
         {
-            polities = objects;
+            // polities = objects;
         }
 
         private void PerformDeletion(int index)
         {
-            if (index >= 0 && index < familitiesProperty.arraySize)
+            if (index >= 0 && index < familiesProperty.arraySize)
             {
-                familitiesProperty.DeleteArrayElementAtIndex(index);
+                familiesProperty.DeleteArrayElementAtIndex(index);
                 if (selectedIndex == index) // Handle deletion of the selected item
                 {
                     selectedIndex = -1;
@@ -209,10 +285,10 @@ namespace KhiemLuong
         }
         private string[] GetFamilyNamesArray()
         {
-            string[] familyNames = new string[familitiesProperty.arraySize];
-            for (int i = 0; i < familitiesProperty.arraySize; i++)
+            string[] familyNames = new string[familiesProperty.arraySize];
+            for (int i = 0; i < familiesProperty.arraySize; i++)
             {
-                familyNames[i] = familitiesProperty.GetArrayElementAtIndex(i).stringValue;
+                familyNames[i] = familiesProperty.GetArrayElementAtIndex(i).stringValue;
             }
             return familyNames;
         }
@@ -222,7 +298,57 @@ namespace KhiemLuong
             polityManager = _polityManager;
             serializedPolityManager = new SerializedObject(polityManager);
 
-            familitiesProperty = serializedPolityManager.FindProperty("families");
+            familiesProperty = serializedPolityManager.FindProperty("families");
+        }
+
+
+        private void TraverseFamily(PolityMember polityMember)
+        {
+            if (polityMember == null || polityMembers.Contains(polityMember))
+                return;
+
+            // Add the current proband to the list of processed PolityMembers
+            polityMembers.Add(polityMember);
+            Debug.Log("added member: " + polityMember.name);
+
+            // Serialized object of the current proband
+            SerializedObject serializedProband = new SerializedObject(polityMember);
+            SerializedProperty familyProp = serializedProband.FindProperty("family");
+
+            if (familyProp != null)
+            {
+                serializedProband.Update();
+
+                // Access family members and recursively explore their families
+                AddFamilyMember(familyProp.FindPropertyRelative("father").objectReferenceValue as PolityMember);
+                AddFamilyMember(familyProp.FindPropertyRelative("mother").objectReferenceValue as PolityMember);
+
+                // Explore partners
+                SerializedProperty partnersProp = familyProp.FindPropertyRelative("partners");
+                for (int i = 0; i < partnersProp.arraySize; i++)
+                {
+                    AddFamilyMember(partnersProp.GetArrayElementAtIndex(i).objectReferenceValue as PolityMember);
+                }
+
+                // Explore children
+                SerializedProperty childrenProp = familyProp.FindPropertyRelative("children");
+                for (int i = 0; i < childrenProp.arraySize; i++)
+                {
+                    AddFamilyMember(childrenProp.GetArrayElementAtIndex(i).objectReferenceValue as PolityMember);
+                }
+
+                serializedProband.ApplyModifiedProperties();
+            }
+        }
+
+        private void AddFamilyMember(PolityMember member)
+        {
+            if (member != null && !polityMembers.Contains(member))
+            {
+                TraverseFamily(member);
+            }
         }
     }
+
+
 }

@@ -170,26 +170,11 @@ namespace KhiemLuong
         {
             public string name;
             public Transform town;
-            public TribeObject[] tribes;
         }
 
-        /// <summary>
-        /// A tribe is a larger unit made up of clans, which are made up of families.
-        /// </summary>
         [Serializable]
-        public class TribeObject
-        {
-            public string name;
-            public ClanObject[] clans;
-        }
-        /// <summary>
-        /// Could represent a clan, chiefdom or band, sometimes known as a horde
-        /// </summary>
-        [Serializable]
-        public class ClanObject
-        {
-            public string name;
-            // public FamilyObject[] families;
+        public class Lineage{
+            public FamilyObject[] families;
         }
 
         /// <summary>
