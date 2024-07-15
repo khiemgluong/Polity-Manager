@@ -26,6 +26,7 @@ namespace KhiemLuong
             Children,
         }
         MemberRelationType selectedMemberRelation;
+        MemberRelationType selectedChildMemberRelation;
 
         struct Node
         {
@@ -54,7 +55,9 @@ namespace KhiemLuong
 
         void OnEnable()
         {
-            Debug.LogError("Enabled");
+            nodes.Clear();
+            polityMembers.Clear();
+            linkedNodes.Clear();
             Vector2 windowCenter = new(position.width / 2, position.height / 2);
             Rect nodeRect = new(windowCenter.x - nodeSize.x / 2, windowCenter.y - nodeSize.y / 2, nodeSize.x, nodeSize.y);
             nodes.Add(nodeRect);
@@ -87,6 +90,10 @@ namespace KhiemLuong
             if (GUILayout.Button("Create Node"))
             {
                 nodes.Add(new Rect(10, 10, nodeSize.x, nodeSize.y));
+            }
+            if (GUILayout.Button("Apply Changes"))
+            {
+                SaveAllPrefabs();
             }
             EditorGUILayout.EndVertical();
             GUILayout.EndArea();
@@ -193,7 +200,10 @@ namespace KhiemLuong
                 {
                     if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
                     {
-                        if (!CheckForDuplicateNode(id)) AddRelationToRootNode(id);
+                        if (!CheckForDuplicateNode(id))
+                        {
+                            QueryRootNodeRelations(id);
+                        }
                     }
                     else
                     {
@@ -204,6 +214,7 @@ namespace KhiemLuong
                 if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
                 {
                     AttachCurveToRootNode(id);
+                    QueryRootNodeRelations(id);
                 }
                 if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
                 {
@@ -211,7 +222,7 @@ namespace KhiemLuong
                 }
                 EditorGUILayout.EndHorizontal();
                 if (GUILayout.Button("Refresh"))
-                    AddRelationToRootNode(id);
+                    QueryRootNodeRelations(id);
                 if (polityMembers[id] != null)
                 {
                     if (polityMembers[id].parents.Contains(polityMembers[0]))
@@ -256,6 +267,7 @@ namespace KhiemLuong
                 nodes.Add(new Rect(rootNode.x + nodeSize.x, rootNode.y, nodeSize.x, nodeSize.y));  // Adjust positioning as needed
             }
 
+            // Replace old polityMembers with new one
             polityMembers = newPolityMembers;
         }
 
@@ -314,7 +326,7 @@ namespace KhiemLuong
             }
         }
 
-        void AddRelationToNode(int rootId, int id)
+        void QueryNodeRelations(int rootId, int id)
         {
             if (polityMembers[rootId] == null)
             {
@@ -328,11 +340,11 @@ namespace KhiemLuong
             if (polityMembers[id] == null) return;
             if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
             {
-                Debug.Log("Relation to root node is: " + relation);
+                Debug.Log("Relation to root node is: " + relation + " " + id);
                 switch (relation)
                 {
                     case MemberRelationType.None:
-                        Debug.LogError("Deleting relations");
+                        Debug.LogError("No relations, deleting relation");
                         if (polityMembers[rootId].partners.Contains(polityMembers[id]))
                             polityMembers[rootId].partners.Remove(polityMembers[id]);
                         if (polityMembers[id].partners.Contains(polityMembers[rootId]))
@@ -343,17 +355,14 @@ namespace KhiemLuong
                             polityMembers[id].parents.Remove(polityMembers[rootId]);
                         break;
                     case MemberRelationType.RootParent:
-                        Debug.Log("This node is a parent.");
                         break;
                     case MemberRelationType.Partners:
-                        Debug.Log("This node is a partner.");
                         if (!polityMembers[rootId].partners.Contains(polityMembers[id]))
                             polityMembers[rootId].partners.Add(polityMembers[id]);
                         if (!polityMembers[id].partners.Contains(polityMembers[rootId]))
                             polityMembers[id].partners.Add(polityMembers[rootId]);
                         break;
                     case MemberRelationType.Children:
-                        Debug.Log("This node is a child.");
                         if (!polityMembers[rootId].children.Contains(polityMembers[id]))
                             polityMembers[rootId].children.Add(polityMembers[id]);
                         if (!polityMembers[id].parents.Contains(polityMembers[rootId]))
@@ -363,63 +372,24 @@ namespace KhiemLuong
                         Debug.Log("Unknown relationship.");
                         break;
                 }
-                SavePrefab(polityMembers[rootId].gameObject);
-                SavePrefab(polityMembers[id].gameObject);
+                modifiedPrefabs.Add(polityMembers[id].gameObject);
+                modifiedPrefabs.Add(polityMembers[rootId].gameObject);
             }
-
             else Debug.LogError("No relation found for ID: " + id);
         }
-        void AddRelationToRootNode(int id) => AddRelationToNode(0, id);
 
-        void ClearRelationToNode(int rootId, int id)
+        HashSet<GameObject> modifiedPrefabs = new HashSet<GameObject>();
+
+        void QueryRootNodeRelations(int id) => QueryNodeRelations(0, id);
+
+        void SaveAllPrefabs()
         {
-            if (polityMembers[rootId] == null)
+            foreach (var prefab in modifiedPrefabs)
             {
-                EditorUtility.DisplayDialog(
-               "Root Polity Member not assigned",
-               $"Please assign a Polity Member at Node {rootId}.",
-               "OK"
-               );
-                return;
+                SavePrefab(prefab);
             }
-            if (polityMembers[id] == null) return;
-            if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
-            {
-                Debug.Log("Relation to root node is: " + relation);
-                switch (relation)
-                {
-                    case MemberRelationType.RootParent:
-                        Debug.Log("This node is a parent, clearing..");
-                        break;
-                    case MemberRelationType.Partners:
-                        Debug.Log("This node is a partner, clearing.");
-                        if (polityMembers[rootId].partners.Contains(polityMembers[id]))
-                        {
-                            polityMembers[rootId].partners.Remove(polityMembers[id]);
-                        }
-                        if (polityMembers[id].partners.Contains(polityMembers[rootId]))
-                        {
-                            polityMembers[id].partners.Remove(polityMembers[rootId]);
-                        }
-                        break;
-                    case MemberRelationType.Children:
-                        Debug.Log("This node is a child, clearing..");
-                        if (polityMembers[rootId].children.Contains(polityMembers[id]))
-                            polityMembers[rootId].children.Remove(polityMembers[id]);
-                        if (polityMembers[id].parents.Contains(polityMembers[rootId]))
-                            polityMembers[id].parents.Remove(polityMembers[rootId]);
-                        break;
-                    default:
-                        Debug.Log("Unknown relationship.");
-                        break;
-                }
-                SavePrefab(polityMembers[rootId].gameObject);
-                SavePrefab(polityMembers[id].gameObject);
-            }
-
-            else Debug.LogError("No relation found for ID: " + id);
+            modifiedPrefabs.Clear();
         }
-
         void SavePrefab(GameObject prefab)
         {
             PrefabUtility.SaveAsPrefabAsset(prefab, AssetDatabase.GetAssetPath(prefab));
@@ -444,6 +414,7 @@ namespace KhiemLuong
             }
             return isDuplicate;
         }
+
 
         /* -------------------------------------------------------------------------- */
         /*                            Bezier Curve Drawers                            */
