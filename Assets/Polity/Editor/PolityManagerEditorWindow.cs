@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Codice.Client.Common.TreeGrouper;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
@@ -21,7 +23,6 @@ namespace KhiemLuong
         {
             public int NodeId;
             public ConnectionPoint Point;
-
             public NodeConnection(int nodeId, ConnectionPoint point)
             {
                 NodeId = nodeId;
@@ -33,9 +34,10 @@ namespace KhiemLuong
         List<NodeConnection> attachedWindows = new List<NodeConnection>();
         float panX = 0;
         float panY = 0;
-        public PolityMember rootPolityMember;
         List<PolityMember> polityMembers = new List<PolityMember>();
         public SerializedObject rootPolityMemberSerializedObj;
+        private SerializedProperty parentsSerializedProperty;
+
         Vector2 nodeSize = new Vector2(150, 150);
         public static void ShowWindow()
         {
@@ -55,10 +57,6 @@ namespace KhiemLuong
             Debug.LogError("Enabled");
             Vector2 windowCenter = new Vector2(position.width / 2, position.height / 2);
             Rect nodeRect = new Rect(windowCenter.x - nodeSize.x / 2, windowCenter.y - nodeSize.y / 2, nodeSize.x, nodeSize.y);
-            // nodes.Add(new Rect(nodeRect.position, nodeSize.x, nodeSize.y)); // Assuming Node constructor takes a Rect or position and size
-
-            // Add a new node with the calculated rectangle
-            // nodes.Add(new Node(nodeRect.position, nodeSize.x, nodeSize.y)); // Assuming Node constructor takes a Rect or position and size
             nodes.Add(nodeRect);
         }
         void OnGUI()
@@ -75,7 +73,6 @@ namespace KhiemLuong
                 for (int i = 0; i < attachedWindows.Count; i += 2)
                 {
                     DrawNodeCurve(nodes[attachedWindows[i].NodeId], nodes[attachedWindows[i + 1].NodeId], attachedWindows[i].Point, attachedWindows[i + 1].Point);
-
                 }
             }
 
@@ -126,38 +123,91 @@ namespace KhiemLuong
             {
                 polityMembers.Add(null);  // Add null to ensure the list size is appropriate
             }
-
+            EditorGUI.BeginChangeCheck();
             polityMembers[id] = EditorGUILayout.ObjectField("", polityMembers[id], typeof(PolityMember), false) as PolityMember;
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
-                {
-                    // rootPolityMemberSerializedObj = new SerializedObject(rootPolityMember);
-                }
-            }
+
             if (id == 0)
             {
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (polityMembers[0] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[0]))
+                    {
+                        Debug.LogError("ID " + 0);
+                        rootPolityMemberSerializedObj = new SerializedObject(polityMembers[0]);
+                        parentsSerializedProperty = rootPolityMemberSerializedObj.FindProperty("parents");
+                    }
+                }
+                if (rootPolityMemberSerializedObj != null)
+                {
+                    rootPolityMemberSerializedObj.Update(); // Make sure to update the serialized object
+                    EditorGUILayout.PropertyField(parentsSerializedProperty, new GUIContent("Parents"), true);
+                    rootPolityMemberSerializedObj.ApplyModifiedProperties(); // Apply properties after drawing
+                }
+
                 if (GUILayout.Button("Parents"))
                 {
-                    windowsToAttach.Add(new NodeConnection(id, ConnectionPoint.Top));
+                    lastMemberRelation = MemberRelationType.Parent;
+                    Debug.LogError("lastMember " + lastMemberRelation);
                 }
                 if (GUILayout.Button("Partners"))
                 {
-                    windowsToAttach.Add(new NodeConnection(id, ConnectionPoint.Right));
+                    lastMemberRelation = MemberRelationType.Partner;
+                    Debug.LogError("lastMember " + lastMemberRelation);
                 }
                 if (GUILayout.Button("Children"))
                 {
-                    windowsToAttach.Add(new NodeConnection(id, ConnectionPoint.Bottom));
+                    lastMemberRelation = MemberRelationType.Children;
+                    Debug.LogError("lastMember " + lastMemberRelation);
                 }
             }
             else
             {
                 if (GUILayout.Button("Attach"))
                 {
-                    windowsToAttach.Add(new NodeConnection(id, ConnectionPoint.Left));
+                    AttachCurveToRootNode(id);
                 }
             }
             GUI.DragWindow();
+        }
+
+        public enum MemberRelationType
+        {
+            None,
+            Parent,
+            Partner,
+            Children,
+            Friends,
+        }
+        MemberRelationType lastMemberRelation;
+        Dictionary<int, NodeConnection> linkedNodes = new Dictionary<int, NodeConnection>();
+
+        void AttachCurveToRootNode(int id)
+        {
+            if (linkedNodes.ContainsKey(id))
+            {
+                return;  // If already linked, exit the method to prevent adding it again
+            }
+            NodeConnection root, target;
+            switch (lastMemberRelation)
+            {
+                case MemberRelationType.Parent:
+                default:
+                    root = new NodeConnection(0, ConnectionPoint.Top);
+                    target = new NodeConnection(id, ConnectionPoint.Bottom);
+                    break;
+                case MemberRelationType.Partner:
+                    root = new NodeConnection(0, ConnectionPoint.Right);
+                    target = new NodeConnection(id, ConnectionPoint.Left);
+                    break;
+                case MemberRelationType.Children:
+                    root = new NodeConnection(0, ConnectionPoint.Bottom);
+                    target = new NodeConnection(id, ConnectionPoint.Top);
+                    break;
+            }
+            windowsToAttach.Add(root);
+            windowsToAttach.Add(target);
+            linkedNodes.Add(id, root);
+            lastMemberRelation = MemberRelationType.None;
         }
 
         void DrawNodeCurve(Rect start, Rect end, ConnectionPoint startConnection, ConnectionPoint endConnection)

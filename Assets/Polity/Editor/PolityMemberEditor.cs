@@ -51,8 +51,8 @@ namespace KhiemLuong
             EditorGUILayout.PropertyField(selectedPolityName, true);
             EditorGUI.EndDisabledGroup();
 
-            SerializedProperty familyProperty = serializedObject.FindProperty("family");  // ensure 'familyObject' is the exact name of the property
-            EditorGUILayout.PropertyField(familyProperty, true);
+            SerializedProperty parentsSerializedProp = serializedObject.FindProperty("parents");  // ensure 'familyObject' is the exact name of the property
+            EditorGUILayout.PropertyField(parentsSerializedProp, true);
 
             if (hasPolityManagerBeenFound && polityNames != null)
             {

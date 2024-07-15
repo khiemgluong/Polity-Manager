@@ -13,10 +13,8 @@ namespace KhiemLuong
         public string polityName;
         public bool polityLeader;
         public string factionName;
-        // public FamilyObject family;
-
-        public PolityMember father, mother;
-        public PolityMember partner;
+        public List<PolityMember> parents;
+        public List<PolityMember> partners;
         public List<PolityMember> children;
         private void OnEnable()
         {
