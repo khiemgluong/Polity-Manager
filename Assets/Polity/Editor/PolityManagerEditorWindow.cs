@@ -1,44 +1,57 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Codice.Client.Common.TreeGrouper;
-using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
 namespace KhiemLuong
 {
-    using static KhiemLuong.PolityManager;
     public class PolityManagerEditorWindow : EditorWindow
     {
-        public enum ConnectionPoint
+        enum NodePoint
         {
             Top,
             Right,
             Left,
             Bottom
         }
-        public struct NodeConnection
+        enum MemberRelationType
+        {
+            None,
+            Parent,
+            Partner,
+            Children,
+            Friends,
+        }
+        struct Node
         {
             public int NodeId;
-            public ConnectionPoint Point;
-            public NodeConnection(int nodeId, ConnectionPoint point)
+            public NodePoint Point;
+            public Node(int nodeId, NodePoint point)
             {
                 NodeId = nodeId;
                 Point = point;
             }
         }
-        List<Rect> nodes = new List<Rect>();
-        List<NodeConnection> windowsToAttach = new List<NodeConnection>();
-        List<NodeConnection> attachedWindows = new List<NodeConnection>();
-        float panX = 0;
-        float panY = 0;
-        List<PolityMember> polityMembers = new List<PolityMember>();
-        public SerializedObject rootPolityMemberSerializedObj;
-        private SerializedProperty parentsSerializedProperty;
+        List<Rect> nodes = new();
+        List<PolityMember> polityMembers = new();
+        SerializedObject rootPolityMemberSerializedObj;
+        SerializedProperty parentsSerializedProperty;
+        Vector2 nodeSize = new(150, 150);
 
-        Vector2 nodeSize = new Vector2(150, 150);
+        /* ------------------------------ PAN CONTROLS ------------------------------ */
+        float panX = 0, panY = 0;
+        bool isDragging = false;
+        Vector2 initialMousePosition;
+        Vector2 dragStartPosition;
+
+        void OnEnable()
+        {
+            Debug.LogError("Enabled");
+            Vector2 windowCenter = new(position.width / 2, position.height / 2);
+            Rect nodeRect = new(windowCenter.x - nodeSize.x / 2, windowCenter.y - nodeSize.y / 2, nodeSize.x, nodeSize.y);
+            nodes.Add(nodeRect);
+        }
         public static void ShowWindow()
         {
             // Get existing open window or if none, make a new one:
@@ -52,36 +65,45 @@ namespace KhiemLuong
             window.Show();
         }
 
-        void OnEnable()
-        {
-            Debug.LogError("Enabled");
-            Vector2 windowCenter = new Vector2(position.width / 2, position.height / 2);
-            Rect nodeRect = new Rect(windowCenter.x - nodeSize.x / 2, windowCenter.y - nodeSize.y / 2, nodeSize.x, nodeSize.y);
-            nodes.Add(nodeRect);
-        }
         void OnGUI()
         {
-            if (windowsToAttach.Count == 2)
-            {
-                attachedWindows.Add(windowsToAttach[0]);
-                attachedWindows.Add(windowsToAttach[1]);
-                windowsToAttach.Clear();
-            }
+            float sidebarWidth = position.width * 0.1f;
+            float mainPanelWidth = position.width * 0.9f;
+            float sidebarHeight = position.height * 0.5f;
+            float mainPanelHeight = position.height;
 
-            if (attachedWindows.Count >= 2)
-            {
-                for (int i = 0; i < attachedWindows.Count; i += 2)
-                {
-                    DrawNodeCurve(nodes[attachedWindows[i].NodeId], nodes[attachedWindows[i + 1].NodeId], attachedWindows[i].Point, attachedWindows[i + 1].Point);
-                }
-            }
-
-            GUI.BeginGroup(new Rect(panX, panY, 100000, 100000));
-            BeginWindows();
-
+            /* -------------------------------------------------------------------------- */
+            /*                                  SIDEBAR                                   */
+            /* -------------------------------------------------------------------------- */
+            GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "Sidebar", GUI.skin.window);
+            EditorGUILayout.BeginVertical();
             if (GUILayout.Button("Create Node"))
             {
                 nodes.Add(new Rect(10, 10, nodeSize.x, nodeSize.y));
+            }
+            EditorGUILayout.EndVertical();
+            GUILayout.EndArea();
+            /* ------------------------------- SIDEBAR END ------------------------------ */
+
+
+            /* -------------------------------------------------------------------------- */
+            /*                                 MAIN PANEL                                 */
+            /* -------------------------------------------------------------------------- */
+            GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "Main Window", GUI.skin.window);
+
+            Rect groupRect = new(panX, panY, 100000, 100000);
+            GUI.BeginGroup(groupRect);
+            BeginWindows();
+            // if (attachedWindows.Count >= 2)
+            // {
+            //     for (int i = 0; i < attachedWindows.Count; i += 2)
+            //     {
+            //         DrawNodeCurve(nodes[attachedWindows[i].NodeId], nodes[attachedWindows[i + 1].NodeId], attachedWindows[i].Point, attachedWindows[i + 1].Point);
+            //     }
+            // }
+            foreach (var pair in linkedNodes)
+            {
+                DrawNodeCurve(nodes[pair.Key.NodeId], nodes[pair.Value.NodeId], pair.Key.Point, pair.Value.Point);
             }
 
             for (int i = 0; i < nodes.Count; i++)
@@ -91,29 +113,34 @@ namespace KhiemLuong
 
             EndWindows();
             GUI.EndGroup();
+            GUILayout.EndArea();
+            /* ----------------------------- MAIN PANEL END ----------------------------- */
 
-            if (GUI.RepeatButton(new Rect(15, 5, 20, 20), "^"))
+            /* ------------------------------ PAN CONTROLS ------------------------------ */
+            if (Event.current.type == EventType.MouseDown && groupRect.Contains(Event.current.mousePosition))
             {
-                panY -= 1;
-                Repaint();
+                isDragging = true;
+                initialMousePosition = Event.current.mousePosition;
+                dragStartPosition = new Vector2(panX, panY);
+                Event.current.Use();  // Consume the event so no other GUI elements use it
             }
 
-            if (GUI.RepeatButton(new Rect(5, 25, 20, 20), "<"))
+            if (isDragging)
             {
-                panX -= 1;
-                Repaint();
-            }
+                if (Event.current.type == EventType.MouseDrag)
+                {
+                    Vector2 currentMousePosition = Event.current.mousePosition;
+                    Vector2 delta = currentMousePosition - initialMousePosition;
 
-            if (GUI.RepeatButton(new Rect(25, 25, 20, 20), ">"))
-            {
-                panX += 1;
-                Repaint();
-            }
-
-            if (GUI.RepeatButton(new Rect(15, 45, 20, 20), "v"))
-            {
-                panY += 1;
-                Repaint();
+                    // Apply the delta to pan values
+                    panX = dragStartPosition.x + delta.x;
+                    panY = dragStartPosition.y + delta.y;
+                    Repaint();
+                }
+                else if (Event.current.type == EventType.MouseUp)
+                {
+                    isDragging = false;
+                }
             }
         }
         void DrawNodeWindow(int id)
@@ -135,6 +162,10 @@ namespace KhiemLuong
                         Debug.LogError("ID " + 0);
                         rootPolityMemberSerializedObj = new SerializedObject(polityMembers[0]);
                         parentsSerializedProperty = rootPolityMemberSerializedObj.FindProperty("parents");
+                    }
+                    else
+                    {
+
                     }
                 }
                 if (rootPolityMemberSerializedObj != null)
@@ -162,55 +193,108 @@ namespace KhiemLuong
             }
             else
             {
-                if (GUILayout.Button("Attach"))
+                if (EditorGUI.EndChangeCheck())
+                {
+                    if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
+                    {
+                        Debug.LogError("ID nonrade" + id);
+                        GetRelationToRootNode(id);
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
                 {
                     AttachCurveToRootNode(id);
                 }
+                if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
+                {
+                    DeleteCurveToRootNode(id);
+                }
+                EditorGUILayout.EndHorizontal();
             }
             GUI.DragWindow();
         }
 
-        public enum MemberRelationType
-        {
-            None,
-            Parent,
-            Partner,
-            Children,
-            Friends,
-        }
         MemberRelationType lastMemberRelation;
-        Dictionary<int, NodeConnection> linkedNodes = new Dictionary<int, NodeConnection>();
+        Dictionary<Node, Node> linkedNodes = new();
+        Dictionary<int, MemberRelationType> linkedRelationType = new();
 
         void AttachCurveToRootNode(int id)
         {
-            if (linkedNodes.ContainsKey(id))
+            if (linkedRelationType.ContainsKey(id))
             {
                 return;  // If already linked, exit the method to prevent adding it again
             }
-            NodeConnection root, target;
+            Node root, target;
             switch (lastMemberRelation)
             {
                 case MemberRelationType.Parent:
                 default:
-                    root = new NodeConnection(0, ConnectionPoint.Top);
-                    target = new NodeConnection(id, ConnectionPoint.Bottom);
+                    root = new Node(0, NodePoint.Top);
+                    target = new Node(id, NodePoint.Bottom);
                     break;
                 case MemberRelationType.Partner:
-                    root = new NodeConnection(0, ConnectionPoint.Right);
-                    target = new NodeConnection(id, ConnectionPoint.Left);
+                    root = new Node(0, NodePoint.Right);
+                    target = new Node(id, NodePoint.Left);
                     break;
                 case MemberRelationType.Children:
-                    root = new NodeConnection(0, ConnectionPoint.Bottom);
-                    target = new NodeConnection(id, ConnectionPoint.Top);
+                    root = new Node(0, NodePoint.Bottom);
+                    target = new Node(id, NodePoint.Top);
                     break;
             }
-            windowsToAttach.Add(root);
-            windowsToAttach.Add(target);
-            linkedNodes.Add(id, root);
+            linkedNodes.Add(target, root);
+            linkedRelationType.Add(id, lastMemberRelation);
             lastMemberRelation = MemberRelationType.None;
         }
 
-        void DrawNodeCurve(Rect start, Rect end, ConnectionPoint startConnection, ConnectionPoint endConnection)
+        void DeleteCurveToRootNode(int id)
+        {
+            List<Node> keysToRemove = new();
+            foreach (var pair in linkedNodes)
+                if (pair.Key.NodeId == id || pair.Value.NodeId == id)
+                    keysToRemove.Add(pair.Key);
+
+            foreach (var key in keysToRemove)
+            {
+                linkedNodes.Remove(key);
+                linkedRelationType.Remove(id);
+            }
+            if (keysToRemove.Count > 0)
+            {
+                Debug.Log("Removed " + keysToRemove.Count + " connections involving node ID " + id);
+            }
+        }
+
+        void GetRelationToRootNode(int id)
+        {
+            if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
+            {
+                Debug.Log("Relation to root node is: " + relation);
+                switch (relation)
+                {
+                    case MemberRelationType.Parent:
+                        Debug.Log("This node is a parent.");
+                        break;
+                    case MemberRelationType.Partner:
+                        Debug.Log("This node is a partner.");
+                        break;
+                    case MemberRelationType.Children:
+                        Debug.Log("This node is a child.");
+                        break;
+                    default:
+                        Debug.Log("Unknown relationship.");
+                        break;
+                }
+            }
+            else Debug.LogError("No relation found for ID: " + id);
+        }
+
+        void DrawNodeCurve(Rect start, Rect end, NodePoint startConnection, NodePoint endConnection)
         {
             Vector2 startPercentage = GetPercentageFromConnectionPoint(startConnection);
             Vector2 endPercentage = GetPercentageFromConnectionPoint(endConnection);
@@ -218,37 +302,37 @@ namespace KhiemLuong
             DrawNodeCurve(start, end, startPercentage, endPercentage, lineColor);
         }
 
-        Vector2 GetPercentageFromConnectionPoint(ConnectionPoint point)
+        Vector2 GetPercentageFromConnectionPoint(NodePoint point)
         {
-            switch (point)
+            return point switch
             {
-                case ConnectionPoint.Top: return new Vector2(0.5f, 0f);
-                case ConnectionPoint.Right: return new Vector2(1.0f, 0.5f);
-                case ConnectionPoint.Left: return new Vector2(0.0f, 0.5f);
-                case ConnectionPoint.Bottom: return new Vector2(0.5f, 1f);
-                default: return new Vector2(0.5f, 0.5f); // Default to center if unknown for some reason
-            }
+                NodePoint.Top => new Vector2(0.5f, 0f),
+                NodePoint.Right => new Vector2(1.0f, 0.5f),
+                NodePoint.Left => new Vector2(0.0f, 0.5f),
+                NodePoint.Bottom => new Vector2(0.5f, 1f),
+                _ => new Vector2(0.5f, 0.5f),// Default to center if unknown for some reason
+            };
         }
 
-        Color GetStartConnectionLineColor(ConnectionPoint startConnection)
+        Color GetStartConnectionLineColor(NodePoint startConnection)
         {
-            switch (startConnection)
+            return startConnection switch
             {
-                case ConnectionPoint.Top: return Color.blue;
-                case ConnectionPoint.Right: return Color.green;
-                case ConnectionPoint.Left: return Color.green;
-                case ConnectionPoint.Bottom: return Color.red;
-                default: return Color.black; // Default to center if unknown for some reason
-            }
+                NodePoint.Top => Color.blue,
+                NodePoint.Right => Color.green,
+                NodePoint.Left => Color.green,
+                NodePoint.Bottom => Color.red,
+                _ => Color.black,// Default to center if unknown for some reason
+            };
         }
 
         void DrawNodeCurve(Rect start, Rect end, Vector2 vStartPercentage, Vector2 vEndPercentage, Color lineColor)
         {
-            Vector3 startPos = new Vector3(start.x + start.width * vStartPercentage.x, start.y + start.height * vStartPercentage.y, 0);
-            Vector3 endPos = new Vector3(end.x + end.width * vEndPercentage.x, end.y + end.height * vEndPercentage.y, 0);
+            Vector3 startPos = new(start.x + start.width * vStartPercentage.x, start.y + start.height * vStartPercentage.y, 0);
+            Vector3 endPos = new(end.x + end.width * vEndPercentage.x, end.y + end.height * vEndPercentage.y, 0);
             Vector3 startTan = startPos + Vector3.right * (-50 + 100 * vStartPercentage.x) + Vector3.up * (-50 + 100 * vStartPercentage.y);
             Vector3 endTan = endPos + Vector3.right * (-50 + 100 * vEndPercentage.x) + Vector3.up * (-50 + 100 * vEndPercentage.y);
-            Color shadowCol = new Color(200, 200, 200, 0.4f);
+            Color shadowCol = new(200, 200, 200, 0.4f);
             for (int i = 0; i < 3; i++) // Draw a shadow
                 Handles.DrawBezier(startPos, endPos, startTan, endTan, shadowCol, null, (i + 1) * 5);
             Handles.DrawBezier(startPos, endPos, startTan, endTan, lineColor, null, 2);
