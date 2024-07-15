@@ -88,8 +88,8 @@ namespace KhiemLuong
             if (GUILayout.Button("Open Editor Window"))
             {
                 var window = EditorWindow.GetWindow<PolityManagerEditorWindow>("Polity Manager");
-                window.SetPolityManager(manager);
-                window.SetPolityObjects(manager.polities);
+                // window.SetPolityManager(manager);
+                // window.SetPolityObjects(manager.polities);
             }
         }
 

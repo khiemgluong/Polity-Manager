@@ -159,7 +159,7 @@ namespace KhiemLuong
         public class FactionObject
         {
             public string name;
-            public FactionObject[] factions;
+            // public FactionObject[] factions;
         }
 
         /// <summary>
@@ -171,7 +171,6 @@ namespace KhiemLuong
             public string name;
             public Transform town;
         }
-
 
         public interface IPolityStateChangeListener
         {

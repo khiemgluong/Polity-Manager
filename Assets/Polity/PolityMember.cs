@@ -13,7 +13,7 @@ namespace KhiemLuong
         public string polityName;
         public bool polityLeader;
         public string factionName;
-        public FamilyObject family;
+        // public FamilyObject family;
 
         public PolityMember father, mother;
         public PolityMember partner;
@@ -40,7 +40,7 @@ namespace KhiemLuong
     public class FamilyObject
     {
         public string surname;
-        public PolityMember father, mother;
+        public List<PolityMember> parents;
         public PolityMember partner;
         public List<PolityMember> children;
     }
