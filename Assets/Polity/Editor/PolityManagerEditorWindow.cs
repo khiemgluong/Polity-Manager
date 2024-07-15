@@ -18,8 +18,8 @@ namespace KhiemLuong
         enum MemberRelationType
         {
             None,
-            Parent,
-            Partner,
+            Parents,
+            Partners,
             Children,
             Friends,
         }
@@ -37,7 +37,7 @@ namespace KhiemLuong
         List<PolityMember> polityMembers = new();
         SerializedObject rootPolityMemberSerializedObj;
         SerializedProperty parentsSerializedProperty;
-        Vector2 nodeSize = new(150, 150);
+        Vector2 nodeSize = new(180, 350);
 
         /* ------------------------------ PAN CONTROLS ------------------------------ */
         float panX = 0, panY = 0;
@@ -67,9 +67,9 @@ namespace KhiemLuong
 
         void OnGUI()
         {
-            float sidebarWidth = position.width * 0.1f;
-            float mainPanelWidth = position.width * 0.9f;
-            float sidebarHeight = position.height * 0.5f;
+            float sidebarWidth = position.width * .1f;
+            float mainPanelWidth = position.width;
+            float sidebarHeight = position.height * .4f;
             float mainPanelHeight = position.height;
 
             /* -------------------------------------------------------------------------- */
@@ -94,22 +94,12 @@ namespace KhiemLuong
             Rect groupRect = new(panX, panY, 100000, 100000);
             GUI.BeginGroup(groupRect);
             BeginWindows();
-            // if (attachedWindows.Count >= 2)
-            // {
-            //     for (int i = 0; i < attachedWindows.Count; i += 2)
-            //     {
-            //         DrawNodeCurve(nodes[attachedWindows[i].NodeId], nodes[attachedWindows[i + 1].NodeId], attachedWindows[i].Point, attachedWindows[i + 1].Point);
-            //     }
-            // }
+
             foreach (var pair in linkedNodes)
-            {
                 DrawNodeCurve(nodes[pair.Key.NodeId], nodes[pair.Value.NodeId], pair.Key.Point, pair.Value.Point);
-            }
 
             for (int i = 0; i < nodes.Count; i++)
-            {
-                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Window " + i);
-            }
+                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i);
 
             EndWindows();
             GUI.EndGroup();
@@ -126,13 +116,11 @@ namespace KhiemLuong
             }
 
             if (isDragging)
-            {
                 if (Event.current.type == EventType.MouseDrag)
                 {
                     Vector2 currentMousePosition = Event.current.mousePosition;
                     Vector2 delta = currentMousePosition - initialMousePosition;
 
-                    // Apply the delta to pan values
                     panX = dragStartPosition.x + delta.x;
                     panY = dragStartPosition.y + delta.y;
                     Repaint();
@@ -141,7 +129,6 @@ namespace KhiemLuong
                 {
                     isDragging = false;
                 }
-            }
         }
         void DrawNodeWindow(int id)
         {
@@ -152,16 +139,17 @@ namespace KhiemLuong
             }
             EditorGUI.BeginChangeCheck();
             polityMembers[id] = EditorGUILayout.ObjectField("", polityMembers[id], typeof(PolityMember), false) as PolityMember;
-
             if (id == 0)
             {
                 if (EditorGUI.EndChangeCheck())
                 {
                     if (polityMembers[0] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[0]))
                     {
-                        Debug.LogError("ID " + 0);
-                        rootPolityMemberSerializedObj = new SerializedObject(polityMembers[0]);
-                        parentsSerializedProperty = rootPolityMemberSerializedObj.FindProperty("parents");
+                        if (!CheckForDuplicateNode(id))
+                        {
+                            rootPolityMemberSerializedObj = new SerializedObject(polityMembers[0]);
+                            parentsSerializedProperty = rootPolityMemberSerializedObj.FindProperty("parents");
+                        }
                     }
                     else
                     {
@@ -175,20 +163,17 @@ namespace KhiemLuong
                     rootPolityMemberSerializedObj.ApplyModifiedProperties(); // Apply properties after drawing
                 }
 
-                if (GUILayout.Button("Parents"))
+                if (GUILayout.Button(MemberRelationType.Parents.ToString()))
                 {
-                    lastMemberRelation = MemberRelationType.Parent;
-                    Debug.LogError("lastMember " + lastMemberRelation);
+                    selectedMemberRelation = MemberRelationType.Parents;
                 }
-                if (GUILayout.Button("Partners"))
+                if (GUILayout.Button(MemberRelationType.Partners.ToString()))
                 {
-                    lastMemberRelation = MemberRelationType.Partner;
-                    Debug.LogError("lastMember " + lastMemberRelation);
+                    selectedMemberRelation = MemberRelationType.Partners;
                 }
-                if (GUILayout.Button("Children"))
+                if (GUILayout.Button(MemberRelationType.Children.ToString()))
                 {
-                    lastMemberRelation = MemberRelationType.Children;
-                    Debug.LogError("lastMember " + lastMemberRelation);
+                    selectedMemberRelation = MemberRelationType.Children;
                 }
             }
             else
@@ -197,9 +182,10 @@ namespace KhiemLuong
                 {
                     if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
                     {
-                        Debug.LogError("ID nonrade" + id);
-                        GetRelationToRootNode(id);
-
+                        if (!CheckForDuplicateNode(id))
+                        {
+                            AddRelationToRootNode(id);
+                        }
                     }
                     else
                     {
@@ -216,11 +202,17 @@ namespace KhiemLuong
                     DeleteCurveToRootNode(id);
                 }
                 EditorGUILayout.EndHorizontal();
+                if (polityMembers[id] != null)
+                    if (polityMembers[id].parents.Contains(polityMembers[0]))
+                        if (GUILayout.Button(MemberRelationType.Parents.ToString()))
+                        {
+
+                        }
             }
             GUI.DragWindow();
         }
 
-        MemberRelationType lastMemberRelation;
+        MemberRelationType selectedMemberRelation;
         Dictionary<Node, Node> linkedNodes = new();
         Dictionary<int, MemberRelationType> linkedRelationType = new();
 
@@ -231,14 +223,14 @@ namespace KhiemLuong
                 return;  // If already linked, exit the method to prevent adding it again
             }
             Node root, target;
-            switch (lastMemberRelation)
+            switch (selectedMemberRelation)
             {
-                case MemberRelationType.Parent:
+                case MemberRelationType.Parents:
                 default:
                     root = new Node(0, NodePoint.Top);
                     target = new Node(id, NodePoint.Bottom);
                     break;
-                case MemberRelationType.Partner:
+                case MemberRelationType.Partners:
                     root = new Node(0, NodePoint.Right);
                     target = new Node(id, NodePoint.Left);
                     break;
@@ -248,8 +240,9 @@ namespace KhiemLuong
                     break;
             }
             linkedNodes.Add(target, root);
-            linkedRelationType.Add(id, lastMemberRelation);
-            lastMemberRelation = MemberRelationType.None;
+            linkedRelationType.Add(id, selectedMemberRelation);
+            AddRelationToRootNode(id);
+            selectedMemberRelation = MemberRelationType.None;
         }
 
         void DeleteCurveToRootNode(int id)
@@ -270,28 +263,82 @@ namespace KhiemLuong
             }
         }
 
-        void GetRelationToRootNode(int id)
+        void AddRelationToRootNode(int id)
         {
+            if (polityMembers[0] == null)
+            {
+                EditorUtility.DisplayDialog(
+               "Root Polity Member not assigned",
+               $"Please assign a Polity Member at Node 0.",
+               "OK"
+               );
+                return;
+            }
+            if (polityMembers[id] == null)
+            {
+                return;
+            }
             if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
             {
                 Debug.Log("Relation to root node is: " + relation);
                 switch (relation)
                 {
-                    case MemberRelationType.Parent:
+                    case MemberRelationType.Parents:
                         Debug.Log("This node is a parent.");
                         break;
-                    case MemberRelationType.Partner:
+                    case MemberRelationType.Partners:
                         Debug.Log("This node is a partner.");
+                        if (!polityMembers[0].partners.Contains(polityMembers[id]))
+                            polityMembers[0].partners.Add(polityMembers[id]);
+                        if (!polityMembers[id].partners.Contains(polityMembers[0]))
+                            polityMembers[id].partners.Add(polityMembers[0]);
                         break;
                     case MemberRelationType.Children:
                         Debug.Log("This node is a child.");
+                        if (!polityMembers[0].children.Contains(polityMembers[id]))
+                            polityMembers[0].children.Add(polityMembers[id]);
+                        if (!polityMembers[id].parents.Contains(polityMembers[0]))
+                            polityMembers[id].parents.Add(polityMembers[0]);
                         break;
                     default:
                         Debug.Log("Unknown relationship.");
                         break;
                 }
+                SavePrefab(polityMembers[0].gameObject);
+                SavePrefab(polityMembers[id].gameObject);
             }
+
             else Debug.LogError("No relation found for ID: " + id);
+        }
+
+        void ClearRelationToRootNode()
+        {
+
+        }
+
+        void SavePrefab(GameObject prefab)
+        {
+            PrefabUtility.SaveAsPrefabAsset(prefab, AssetDatabase.GetAssetPath(prefab));
+            Debug.Log("Changes saved to prefab! " + prefab.name);
+        }
+
+        bool CheckForDuplicateNode(int id)
+        {
+            bool isDuplicate = false;
+            int i; for (i = 0; i < polityMembers.Count; i++)
+                if (i != id && polityMembers[i] == polityMembers[id])
+                { isDuplicate = true; break; }
+
+            if (isDuplicate)
+            {
+                EditorUtility.DisplayDialog(
+                               "Duplicate PolityMember Detected",
+                               $"This PolityMember has already been assigned to node {i}.",
+                               "OK"
+                           );
+                polityMembers[id] = null;
+            }
+            return isDuplicate;
         }
 
         void DrawNodeCurve(Rect start, Rect end, NodePoint startConnection, NodePoint endConnection)
