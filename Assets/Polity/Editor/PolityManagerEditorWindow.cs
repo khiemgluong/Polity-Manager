@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,8 +22,9 @@ namespace KhiemLuong
             Parents,
             Partners,
             Children,
-            Friends,
         }
+        MemberRelationType selectedMemberRelation;
+
         struct Node
         {
             public int NodeId;
@@ -38,6 +40,8 @@ namespace KhiemLuong
         SerializedObject rootPolityMemberSerializedObj;
         SerializedProperty parentsSerializedProperty;
         Vector2 nodeSize = new(180, 350);
+        Dictionary<Node, Node> linkedNodes = new();
+        Dictionary<int, MemberRelationType> linkedRelationType = new();
 
         /* ------------------------------ PAN CONTROLS ------------------------------ */
         float panX = 0, panY = 0;
@@ -132,11 +136,7 @@ namespace KhiemLuong
         }
         void DrawNodeWindow(int id)
         {
-            // Ensure that there is a placeholder for new nodes if the index exceeds the list count
-            while (polityMembers.Count <= id)
-            {
-                polityMembers.Add(null);  // Add null to ensure the list size is appropriate
-            }
+            while (polityMembers.Count <= id) polityMembers.Add(null);
             EditorGUI.BeginChangeCheck();
             polityMembers[id] = EditorGUILayout.ObjectField("", polityMembers[id], typeof(PolityMember), false) as PolityMember;
             if (id == 0)
@@ -147,6 +147,7 @@ namespace KhiemLuong
                     {
                         if (!CheckForDuplicateNode(id))
                         {
+                            // GenerateRootNodeFamilyMembers();
                             rootPolityMemberSerializedObj = new SerializedObject(polityMembers[0]);
                             parentsSerializedProperty = rootPolityMemberSerializedObj.FindProperty("parents");
                         }
@@ -203,18 +204,55 @@ namespace KhiemLuong
                 }
                 EditorGUILayout.EndHorizontal();
                 if (polityMembers[id] != null)
+                {
                     if (polityMembers[id].parents.Contains(polityMembers[0]))
                         if (GUILayout.Button(MemberRelationType.Parents.ToString()))
                         {
 
                         }
+                    // if (linkedRelationType[id] != MemberRelationType.None)
+                    // {
+                    //     EditorGUILayout.LabelField("Hello");
+                    // }
+                }
+
             }
             GUI.DragWindow();
         }
 
-        MemberRelationType selectedMemberRelation;
-        Dictionary<Node, Node> linkedNodes = new();
-        Dictionary<int, MemberRelationType> linkedRelationType = new();
+        /* -------------------------------------------------------------------------- */
+        /*                             NODE INITIALIZATION                            */
+        /* -------------------------------------------------------------------------- */
+        void GenerateRootNodeFamilyMembers()
+        {
+            if (polityMembers[0] == null) return; // Ensure the root node exists
+
+            Rect rootNode = nodes[0]; // Assuming this is already correctly set somewhere in your code
+            HashSet<PolityMember> uniqueMembers = new HashSet<PolityMember>();
+
+            // Add all parents and children to the HashSet to ensure uniqueness
+            foreach (var parent in polityMembers[0].parents)
+            {
+                uniqueMembers.Add(parent);
+            }
+            foreach (var child in polityMembers[0].children)
+            {
+                uniqueMembers.Add(child);
+            }
+
+            // Clear existing polityMembers but keep the root
+            List<PolityMember> newPolityMembers = new List<PolityMember>() { polityMembers[0] };
+
+            // Start adding from index 1
+            foreach (var member in uniqueMembers)
+            {
+                newPolityMembers.Add(member);
+                nodes.Add(new Rect(rootNode.x + nodeSize.x, rootNode.y, nodeSize.x, nodeSize.y));  // Adjust positioning as needed
+            }
+
+            // Replace old polityMembers with new one
+            polityMembers = newPolityMembers;
+        }
 
         void AttachCurveToRootNode(int id)
         {
@@ -274,10 +312,7 @@ namespace KhiemLuong
                );
                 return;
             }
-            if (polityMembers[id] == null)
-            {
-                return;
-            }
+            if (polityMembers[id] == null) return;
             if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
             {
                 Debug.Log("Relation to root node is: " + relation);
@@ -311,9 +346,49 @@ namespace KhiemLuong
             else Debug.LogError("No relation found for ID: " + id);
         }
 
-        void ClearRelationToRootNode()
+        void ClearRelationToRootNode(int id)
         {
+            if (polityMembers[0] == null)
+            {
+                EditorUtility.DisplayDialog(
+               "Root Polity Member not assigned",
+               $"Please assign a Polity Member at Node 0.",
+               "OK"
+               );
+                return;
+            }
+            if (polityMembers[id] == null) return;
+            if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
+            {
+                Debug.Log("Relation to root node is: " + relation);
+                switch (relation)
+                {
+                    case MemberRelationType.Parents:
+                        Debug.Log("This node is a parent.");
+                        break;
+                    case MemberRelationType.Partners:
+                        Debug.Log("This node is a partner.");
+                        if (!polityMembers[0].partners.Contains(polityMembers[id]))
+                            polityMembers[0].partners.Add(polityMembers[id]);
+                        if (!polityMembers[id].partners.Contains(polityMembers[0]))
+                            polityMembers[id].partners.Add(polityMembers[0]);
+                        break;
+                    case MemberRelationType.Children:
+                        Debug.Log("This node is a child.");
+                        if (!polityMembers[0].children.Contains(polityMembers[id]))
+                            polityMembers[0].children.Add(polityMembers[id]);
+                        if (!polityMembers[id].parents.Contains(polityMembers[0]))
+                            polityMembers[id].parents.Add(polityMembers[0]);
+                        break;
+                    default:
+                        Debug.Log("Unknown relationship.");
+                        break;
+                }
+                SavePrefab(polityMembers[0].gameObject);
+                SavePrefab(polityMembers[id].gameObject);
+            }
 
+            else Debug.LogError("No relation found for ID: " + id);
         }
 
         void SavePrefab(GameObject prefab)
@@ -341,6 +416,10 @@ namespace KhiemLuong
             return isDuplicate;
         }
 
+
+        /* -------------------------------------------------------------------------- */
+        /*                            Bezier Curve Drawers                            */
+        /* -------------------------------------------------------------------------- */
         void DrawNodeCurve(Rect start, Rect end, NodePoint startConnection, NodePoint endConnection)
         {
             Vector2 startPercentage = GetPercentageFromConnectionPoint(startConnection);
@@ -348,7 +427,6 @@ namespace KhiemLuong
             Color lineColor = GetStartConnectionLineColor(startConnection);
             DrawNodeCurve(start, end, startPercentage, endPercentage, lineColor);
         }
-
         Vector2 GetPercentageFromConnectionPoint(NodePoint point)
         {
             return point switch
@@ -360,7 +438,6 @@ namespace KhiemLuong
                 _ => new Vector2(0.5f, 0.5f),// Default to center if unknown for some reason
             };
         }
-
         Color GetStartConnectionLineColor(NodePoint startConnection)
         {
             return startConnection switch
@@ -372,7 +449,6 @@ namespace KhiemLuong
                 _ => Color.black,// Default to center if unknown for some reason
             };
         }
-
         void DrawNodeCurve(Rect start, Rect end, Vector2 vStartPercentage, Vector2 vEndPercentage, Color lineColor)
         {
             Vector3 startPos = new(start.x + start.width * vStartPercentage.x, start.y + start.height * vStartPercentage.y, 0);
