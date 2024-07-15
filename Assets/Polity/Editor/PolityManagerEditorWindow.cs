@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,6 +20,7 @@ namespace KhiemLuong
         enum MemberRelationType
         {
             None,
+            RootParent,
             Parents,
             Partners,
             Children,
@@ -40,6 +42,7 @@ namespace KhiemLuong
         SerializedObject rootPolityMemberSerializedObj;
         SerializedProperty parentsSerializedProperty;
         Vector2 nodeSize = new(180, 350);
+        int selectedNodeId = -1;
         Dictionary<Node, Node> linkedNodes = new();
         Dictionary<int, MemberRelationType> linkedRelationType = new();
 
@@ -166,7 +169,7 @@ namespace KhiemLuong
 
                 if (GUILayout.Button(MemberRelationType.Parents.ToString()))
                 {
-                    selectedMemberRelation = MemberRelationType.Parents;
+                    selectedMemberRelation = MemberRelationType.RootParent;
                 }
                 if (GUILayout.Button(MemberRelationType.Partners.ToString()))
                 {
@@ -179,14 +182,18 @@ namespace KhiemLuong
             }
             else
             {
+                if (GUILayout.Button("Close Node"))
+                {
+                    DeleteCurveToRootNode(id);
+                    nodes.Remove(nodes[id]);
+                    linkedRelationType.Remove(id);
+                    polityMembers.Remove(polityMembers[id]);
+                }
                 if (EditorGUI.EndChangeCheck())
                 {
                     if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
                     {
-                        if (!CheckForDuplicateNode(id))
-                        {
-                            AddRelationToRootNode(id);
-                        }
+                        if (!CheckForDuplicateNode(id)) AddRelationToRootNode(id);
                     }
                     else
                     {
@@ -203,12 +210,15 @@ namespace KhiemLuong
                     DeleteCurveToRootNode(id);
                 }
                 EditorGUILayout.EndHorizontal();
+                if (GUILayout.Button("Refresh"))
+                    AddRelationToRootNode(id);
                 if (polityMembers[id] != null)
                 {
                     if (polityMembers[id].parents.Contains(polityMembers[0]))
                         if (GUILayout.Button(MemberRelationType.Parents.ToString()))
                         {
-
+                            selectedMemberRelation = MemberRelationType.Parents;
+                            selectedNodeId = id;
                         }
                     // if (linkedRelationType[id] != MemberRelationType.None)
                     // {
@@ -239,49 +249,51 @@ namespace KhiemLuong
             {
                 uniqueMembers.Add(child);
             }
-
-            // Clear existing polityMembers but keep the root
             List<PolityMember> newPolityMembers = new List<PolityMember>() { polityMembers[0] };
-
-            // Start adding from index 1
             foreach (var member in uniqueMembers)
             {
                 newPolityMembers.Add(member);
                 nodes.Add(new Rect(rootNode.x + nodeSize.x, rootNode.y, nodeSize.x, nodeSize.y));  // Adjust positioning as needed
             }
 
-            // Replace old polityMembers with new one
             polityMembers = newPolityMembers;
         }
 
-        void AttachCurveToRootNode(int id)
+        void AttachCurveToNode(int rootId, int id)
         {
             if (linkedRelationType.ContainsKey(id))
             {
-                return;  // If already linked, exit the method to prevent adding it again
+                return;
             }
             Node root, target;
             switch (selectedMemberRelation)
             {
-                case MemberRelationType.Parents:
+                case MemberRelationType.RootParent:
                 default:
-                    root = new Node(0, NodePoint.Top);
+                    root = new Node(rootId, NodePoint.Top);
+                    target = new Node(id, NodePoint.Bottom);
+                    break;
+                case MemberRelationType.Parents:
+                    root = new Node(rootId, NodePoint.Right);
                     target = new Node(id, NodePoint.Bottom);
                     break;
                 case MemberRelationType.Partners:
-                    root = new Node(0, NodePoint.Right);
+                    root = new Node(rootId, NodePoint.Right);
                     target = new Node(id, NodePoint.Left);
                     break;
                 case MemberRelationType.Children:
-                    root = new Node(0, NodePoint.Bottom);
+                    root = new Node(rootId, NodePoint.Bottom);
                     target = new Node(id, NodePoint.Top);
                     break;
             }
             linkedNodes.Add(target, root);
             linkedRelationType.Add(id, selectedMemberRelation);
-            AddRelationToRootNode(id);
             selectedMemberRelation = MemberRelationType.None;
+            selectedNodeId = -1;
         }
+
+        void AttachCurveToRootNode(int id) => AttachCurveToNode(0, id);
+
 
         void DeleteCurveToRootNode(int id)
         {
@@ -293,7 +305,8 @@ namespace KhiemLuong
             foreach (var key in keysToRemove)
             {
                 linkedNodes.Remove(key);
-                linkedRelationType.Remove(id);
+                // linkedRelationType.Remove(id);
+                linkedRelationType[id] = MemberRelationType.None;
             }
             if (keysToRemove.Count > 0)
             {
@@ -301,13 +314,13 @@ namespace KhiemLuong
             }
         }
 
-        void AddRelationToRootNode(int id)
+        void AddRelationToNode(int rootId, int id)
         {
-            if (polityMembers[0] == null)
+            if (polityMembers[rootId] == null)
             {
                 EditorUtility.DisplayDialog(
                "Root Polity Member not assigned",
-               $"Please assign a Polity Member at Node 0.",
+               $"Please assign a Polity Member at Node {rootId}.",
                "OK"
                );
                 return;
@@ -318,41 +331,53 @@ namespace KhiemLuong
                 Debug.Log("Relation to root node is: " + relation);
                 switch (relation)
                 {
-                    case MemberRelationType.Parents:
+                    case MemberRelationType.None:
+                        Debug.LogError("Deleting relations");
+                        if (polityMembers[rootId].partners.Contains(polityMembers[id]))
+                            polityMembers[rootId].partners.Remove(polityMembers[id]);
+                        if (polityMembers[id].partners.Contains(polityMembers[rootId]))
+                            polityMembers[id].partners.Remove(polityMembers[rootId]);
+                        if (polityMembers[rootId].children.Contains(polityMembers[id]))
+                            polityMembers[rootId].children.Remove(polityMembers[id]);
+                        if (polityMembers[id].parents.Contains(polityMembers[rootId]))
+                            polityMembers[id].parents.Remove(polityMembers[rootId]);
+                        break;
+                    case MemberRelationType.RootParent:
                         Debug.Log("This node is a parent.");
                         break;
                     case MemberRelationType.Partners:
                         Debug.Log("This node is a partner.");
-                        if (!polityMembers[0].partners.Contains(polityMembers[id]))
-                            polityMembers[0].partners.Add(polityMembers[id]);
-                        if (!polityMembers[id].partners.Contains(polityMembers[0]))
-                            polityMembers[id].partners.Add(polityMembers[0]);
+                        if (!polityMembers[rootId].partners.Contains(polityMembers[id]))
+                            polityMembers[rootId].partners.Add(polityMembers[id]);
+                        if (!polityMembers[id].partners.Contains(polityMembers[rootId]))
+                            polityMembers[id].partners.Add(polityMembers[rootId]);
                         break;
                     case MemberRelationType.Children:
                         Debug.Log("This node is a child.");
-                        if (!polityMembers[0].children.Contains(polityMembers[id]))
-                            polityMembers[0].children.Add(polityMembers[id]);
-                        if (!polityMembers[id].parents.Contains(polityMembers[0]))
-                            polityMembers[id].parents.Add(polityMembers[0]);
+                        if (!polityMembers[rootId].children.Contains(polityMembers[id]))
+                            polityMembers[rootId].children.Add(polityMembers[id]);
+                        if (!polityMembers[id].parents.Contains(polityMembers[rootId]))
+                            polityMembers[id].parents.Add(polityMembers[rootId]);
                         break;
                     default:
                         Debug.Log("Unknown relationship.");
                         break;
                 }
-                SavePrefab(polityMembers[0].gameObject);
+                SavePrefab(polityMembers[rootId].gameObject);
                 SavePrefab(polityMembers[id].gameObject);
             }
 
             else Debug.LogError("No relation found for ID: " + id);
         }
+        void AddRelationToRootNode(int id) => AddRelationToNode(0, id);
 
-        void ClearRelationToRootNode(int id)
+        void ClearRelationToNode(int rootId, int id)
         {
-            if (polityMembers[0] == null)
+            if (polityMembers[rootId] == null)
             {
                 EditorUtility.DisplayDialog(
                "Root Polity Member not assigned",
-               $"Please assign a Polity Member at Node 0.",
+               $"Please assign a Polity Member at Node {rootId}.",
                "OK"
                );
                 return;
@@ -363,28 +388,32 @@ namespace KhiemLuong
                 Debug.Log("Relation to root node is: " + relation);
                 switch (relation)
                 {
-                    case MemberRelationType.Parents:
-                        Debug.Log("This node is a parent.");
+                    case MemberRelationType.RootParent:
+                        Debug.Log("This node is a parent, clearing..");
                         break;
                     case MemberRelationType.Partners:
-                        Debug.Log("This node is a partner.");
-                        if (!polityMembers[0].partners.Contains(polityMembers[id]))
-                            polityMembers[0].partners.Add(polityMembers[id]);
-                        if (!polityMembers[id].partners.Contains(polityMembers[0]))
-                            polityMembers[id].partners.Add(polityMembers[0]);
+                        Debug.Log("This node is a partner, clearing.");
+                        if (polityMembers[rootId].partners.Contains(polityMembers[id]))
+                        {
+                            polityMembers[rootId].partners.Remove(polityMembers[id]);
+                        }
+                        if (polityMembers[id].partners.Contains(polityMembers[rootId]))
+                        {
+                            polityMembers[id].partners.Remove(polityMembers[rootId]);
+                        }
                         break;
                     case MemberRelationType.Children:
-                        Debug.Log("This node is a child.");
-                        if (!polityMembers[0].children.Contains(polityMembers[id]))
-                            polityMembers[0].children.Add(polityMembers[id]);
-                        if (!polityMembers[id].parents.Contains(polityMembers[0]))
-                            polityMembers[id].parents.Add(polityMembers[0]);
+                        Debug.Log("This node is a child, clearing..");
+                        if (polityMembers[rootId].children.Contains(polityMembers[id]))
+                            polityMembers[rootId].children.Remove(polityMembers[id]);
+                        if (polityMembers[id].parents.Contains(polityMembers[rootId]))
+                            polityMembers[id].parents.Remove(polityMembers[rootId]);
                         break;
                     default:
                         Debug.Log("Unknown relationship.");
                         break;
                 }
-                SavePrefab(polityMembers[0].gameObject);
+                SavePrefab(polityMembers[rootId].gameObject);
                 SavePrefab(polityMembers[id].gameObject);
             }
 
@@ -394,7 +423,7 @@ namespace KhiemLuong
         void SavePrefab(GameObject prefab)
         {
             PrefabUtility.SaveAsPrefabAsset(prefab, AssetDatabase.GetAssetPath(prefab));
-            Debug.Log("Changes saved to prefab! " + prefab.name);
+            Debug.Log("Changes saved prefab " + prefab.name);
         }
 
         bool CheckForDuplicateNode(int id)
@@ -415,7 +444,6 @@ namespace KhiemLuong
             }
             return isDuplicate;
         }
-
 
         /* -------------------------------------------------------------------------- */
         /*                            Bezier Curve Drawers                            */
