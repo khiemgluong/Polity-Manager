@@ -40,14 +40,15 @@ namespace KhiemLuong
                 Point = point;
             }
         }
-        private SerializedObject serializedObject;
+        SerializedObject serializedObject;
         GUIStyle parentNode, partnerNode, childrenNode;
         List<Rect> nodes = new();
-        Vector2 nodeSize = new(180, 250);
+        Vector2 nodeSize = new(150, 120);
         /// <summary>
         /// This nodeId is referenced only in a node which is a child of the root node
         /// </summary>
         int childNodeId = -1;
+        bool isRootGenerated;
         Dictionary<Node, Node> linkedNodes = new();
         Dictionary<int, RelationType> linkedRelationType = new();
 
@@ -72,7 +73,7 @@ namespace KhiemLuong
             polityMembers.Clear();
             linkedNodes.Clear();
             Vector2 windowCenter = new(position.width / 3, position.height / 3);
-            Rect nodeRect = new(windowCenter.x - nodeSize.x / 3, windowCenter.y - nodeSize.y / 3, nodeSize.x, nodeSize.y);
+            Rect nodeRect = new(windowCenter.x + nodeSize.x, windowCenter.y + nodeSize.y, nodeSize.x, nodeSize.y);
             nodes.Add(nodeRect);
         }
         public static void ShowWindow()
@@ -81,8 +82,8 @@ namespace KhiemLuong
             var window = GetWindow<PolityManagerEditorWindow>("Polity Manager");
             window.minSize = new Vector2(200, 100); // Define minimum size
             var screenResolution = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
-            var windowSize = screenResolution * 0.33f; // Set window size to 1/3 of the screen size
-            var windowPosition = (screenResolution - windowSize) * 0.33f; // Center the window
+            var windowSize = screenResolution * .33f; // Set window size to 1/3 of the screen size
+            var windowPosition = (screenResolution - windowSize) * .33f; // Center the window
             // Set the window size and position
             window.position = new Rect(windowPosition.x, windowPosition.y, windowSize.x, windowSize.y);
             window.Show();
@@ -113,7 +114,7 @@ namespace KhiemLuong
             /* -------------------------------------------------------------------------- */
             GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "Main Window", GUI.skin.window);
 
-            Rect groupRect = new(panX, panY, 100000, 100000);
+            Rect groupRect = new(panX, panY, 10000, 10000);
             GUI.BeginGroup(groupRect);
             BeginWindows();
 
@@ -170,6 +171,7 @@ namespace KhiemLuong
                     isDragging = false;
                 }
         }
+        
         void DrawNodeWindow(int id)
         {
             while (polityMembers.Count <= id) polityMembers.Add(null);
@@ -193,6 +195,8 @@ namespace KhiemLuong
                         {
                             relationType = RelationType.Children;
                         }
+                        if (!isRootGenerated)
+                            GenerateRootNodeFamilyMembers();
                     }
                 }
             }
@@ -202,6 +206,7 @@ namespace KhiemLuong
                 {
                     if (!CheckForDuplicateNode(id))
                     {
+                        Debug.LogError("henlo");
                         SetRootNodeRelationTypes(id);
                         if (GUILayout.Button("Close Node"))
                         {
@@ -273,28 +278,52 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         void GenerateRootNodeFamilyMembers()
         {
-            if (polityMembers[0] == null) return; // Ensure the root node exists
-
-            Rect rootNode = nodes[0]; // Assuming this is already correctly set somewhere in your code
-            HashSet<PolityMember> uniqueMembers = new HashSet<PolityMember>();
-
-            // Add all parents and children to the HashSet to ensure uniqueness
-            foreach (var parent in polityMembers[0].parents)
+            if (polityMembers[0] == null) return;
+            PolityMember root = polityMembers[0];
+            Rect rootNode = nodes[0];
+            for (int i = 0; i < root.parents.Count; i++)
             {
-                uniqueMembers.Add(parent);
+                float currentXOffset = -nodeSize.x;
+                polityMembers.Add(root.parents[i]);
+                if (i == 0)
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                else
+                {
+                    currentXOffset += nodeSize.x * 2f;
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                }
+                relationType = RelationType.Parents;
+                AttachCurveToRootNode(i + 1);
             }
-            foreach (var child in polityMembers[0].children)
+            for (int i = 0; i < root.partners.Count; i++)
             {
-                uniqueMembers.Add(child);
+                float currentXOffset = nodeSize.x;
+                polityMembers.Add(root.partners[i]);
+                if (i == 0)
+                    nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y, nodeSize.x, nodeSize.y));
+                else
+                {
+                    currentXOffset += nodeSize.x * 2f;
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
+                }
+                relationType = RelationType.Partners;
+                AttachCurveToRootNode(polityMembers.Count - 1);
             }
-            List<PolityMember> newPolityMembers = new List<PolityMember>() { polityMembers[0] };
-            foreach (var member in uniqueMembers)
+            for (int i = 0; i < root.children.Count; i++)
             {
-                newPolityMembers.Add(member);
-                nodes.Add(new Rect(rootNode.x + nodeSize.x, rootNode.y, nodeSize.x, nodeSize.y));  // Adjust positioning as needed
+                float currentXOffset = -nodeSize.x;
+                polityMembers.Add(root.children[i]);
+                if (i == 0)
+                    nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                else
+                {
+                    currentXOffset += nodeSize.x * 2f;
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                }
+                relationType = RelationType.Children;
+                AttachCurveToRootNode(polityMembers.Count - 1);
             }
-            // Replace old polityMembers with new one
-            polityMembers = newPolityMembers;
+            isRootGenerated = true;
         }
 
         /* -------------------------------------------------------------------------- */
@@ -306,9 +335,7 @@ namespace KhiemLuong
         void AttachCurveToNode(int rootId, int id)
         {
             if (linkedRelationType.ContainsKey(id))
-            {
                 return;
-            }
             Node root, target;
             switch (relationType)
             {
@@ -320,6 +347,7 @@ namespace KhiemLuong
                 case RelationType.Partners:
                     root = new Node(rootId, NodePoint.Right);
                     target = new Node(id, NodePoint.Left);
+                    Debug.LogError("Shiet");
                     break;
                 case RelationType.Children:
                     root = new Node(rootId, NodePoint.Bottom);
