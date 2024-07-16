@@ -15,7 +15,8 @@ namespace KhiemLuong
             Top,
             Right,
             Left,
-            Bottom
+            Bottom,
+            Child
         }
         enum MemberRelationType
         {
@@ -26,7 +27,6 @@ namespace KhiemLuong
             Children,
         }
         MemberRelationType selectedMemberRelation;
-        MemberRelationType selectedChildMemberRelation;
 
         struct Node
         {
@@ -43,8 +43,12 @@ namespace KhiemLuong
         SerializedObject rootPolityMemberSerializedObj;
         SerializedProperty parentsSerializedProperty;
         Vector2 nodeSize = new(180, 350);
-        int selectedNodeId = -1;
+        /// <summary>
+        /// This nodeId is referenced only in a node which is a child of the root node
+        /// </summary>
+        int childNodeId = -1;
         Dictionary<Node, Node> linkedNodes = new();
+        HashSet<GameObject> modifiedPrefabs = new HashSet<GameObject>();
         Dictionary<int, MemberRelationType> linkedRelationType = new();
 
         /* ------------------------------ PAN CONTROLS ------------------------------ */
@@ -200,10 +204,7 @@ namespace KhiemLuong
                 {
                     if (polityMembers[id] != null && PrefabUtility.IsPartOfPrefabAsset(polityMembers[id]))
                     {
-                        if (!CheckForDuplicateNode(id))
-                        {
-                            QueryRootNodeRelations(id);
-                        }
+                        if (!CheckForDuplicateNode(id)) QueryRootNodeRelations(id);
                     }
                     else
                     {
@@ -213,12 +214,23 @@ namespace KhiemLuong
                 EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
                 {
-                    AttachCurveToRootNode(id);
-                    QueryRootNodeRelations(id);
+                    Debug.LogError("Selceted " + childNodeId);
+                    if (childNodeId == -1)
+                    {
+                        AttachCurveToRootNode(id);
+                        QueryRootNodeRelations(id);
+                    }
+                    else
+                    {
+                        AttachCurveToParentNode(id);
+                        QueryNodeRelations(childNodeId, id);
+                        childNodeId = -1;
+                    }
                 }
                 if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
                 {
                     DeleteCurveToRootNode(id);
+                    QueryRootNodeRelations(id);
                 }
                 EditorGUILayout.EndHorizontal();
                 if (GUILayout.Button("Refresh"))
@@ -229,12 +241,13 @@ namespace KhiemLuong
                         if (GUILayout.Button(MemberRelationType.Parents.ToString()))
                         {
                             selectedMemberRelation = MemberRelationType.Parents;
-                            selectedNodeId = id;
+                            childNodeId = id;
                         }
-                    // if (linkedRelationType[id] != MemberRelationType.None)
-                    // {
-                    //     EditorGUILayout.LabelField("Hello");
-                    // }
+                    if (linkedRelationType.ContainsKey(id))
+                        if (linkedRelationType[id] != MemberRelationType.None)
+                        {
+                            EditorGUILayout.LabelField("Hello");
+                        }
                 }
 
             }
@@ -266,11 +279,16 @@ namespace KhiemLuong
                 newPolityMembers.Add(member);
                 nodes.Add(new Rect(rootNode.x + nodeSize.x, rootNode.y, nodeSize.x, nodeSize.y));  // Adjust positioning as needed
             }
-
             // Replace old polityMembers with new one
             polityMembers = newPolityMembers;
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                              NODE CONNECTIONS                              */
+        /* -------------------------------------------------------------------------- */
+
+        /* -------------------------- Node Curve Attachment ------------------------- */
+        void AttachCurveToRootNode(int id) => AttachCurveToNode(0, id);
         void AttachCurveToNode(int rootId, int id)
         {
             if (linkedRelationType.ContainsKey(id))
@@ -298,15 +316,34 @@ namespace KhiemLuong
                     target = new Node(id, NodePoint.Top);
                     break;
             }
-            linkedNodes.Add(target, root);
-            linkedRelationType.Add(id, selectedMemberRelation);
+            if (linkedNodes.ContainsKey(target))
+                linkedNodes[target] = root;
+            else
+                linkedNodes.Add(target, root);
+            if (linkedRelationType.ContainsKey(id))
+                linkedRelationType[id] = selectedMemberRelation;
+            else
+                linkedRelationType.Add(id, selectedMemberRelation);
             selectedMemberRelation = MemberRelationType.None;
-            selectedNodeId = -1;
+        }
+        void AttachCurveToParentNode(int id)
+        {
+            Node root = new(childNodeId, NodePoint.Top);
+            Node target = new(id, NodePoint.Child);
+
+            if (linkedRelationType.ContainsKey(id))
+            {
+                if (linkedRelationType[id] == MemberRelationType.Partners)
+                {
+                    if (linkedNodes.TryGetValue(root, out Node existingTarget) && existingTarget.Equals(target))
+                    { Debug.LogError("Key-value pair already exists."); return; }
+                    else linkedNodes.Add(target, root);
+                }
+                else Debug.LogWarning("A child relation can only be made to a Partner.");
+            }
         }
 
-        void AttachCurveToRootNode(int id) => AttachCurveToNode(0, id);
-
-
+        /* -------------------------- Node Curve Detachment ------------------------- */
         void DeleteCurveToRootNode(int id)
         {
             List<Node> keysToRemove = new();
@@ -317,7 +354,6 @@ namespace KhiemLuong
             foreach (var key in keysToRemove)
             {
                 linkedNodes.Remove(key);
-                // linkedRelationType.Remove(id);
                 linkedRelationType[id] = MemberRelationType.None;
             }
             if (keysToRemove.Count > 0)
@@ -340,7 +376,7 @@ namespace KhiemLuong
             if (polityMembers[id] == null) return;
             if (linkedRelationType.TryGetValue(id, out MemberRelationType relation))
             {
-                Debug.Log("Relation to root node is: " + relation + " " + id);
+                Debug.Log("Relation to node " + rootId + " is: " + relation + " " + id);
                 switch (relation)
                 {
                     case MemberRelationType.None:
@@ -378,16 +414,12 @@ namespace KhiemLuong
             else Debug.LogError("No relation found for ID: " + id);
         }
 
-        HashSet<GameObject> modifiedPrefabs = new HashSet<GameObject>();
 
         void QueryRootNodeRelations(int id) => QueryNodeRelations(0, id);
 
         void SaveAllPrefabs()
         {
-            foreach (var prefab in modifiedPrefabs)
-            {
-                SavePrefab(prefab);
-            }
+            foreach (var prefab in modifiedPrefabs) SavePrefab(prefab);
             modifiedPrefabs.Clear();
         }
         void SavePrefab(GameObject prefab)
@@ -415,7 +447,6 @@ namespace KhiemLuong
             return isDuplicate;
         }
 
-
         /* -------------------------------------------------------------------------- */
         /*                            Bezier Curve Drawers                            */
         /* -------------------------------------------------------------------------- */
@@ -434,6 +465,7 @@ namespace KhiemLuong
                 NodePoint.Right => new Vector2(1.0f, 0.5f),
                 NodePoint.Left => new Vector2(0.0f, 0.5f),
                 NodePoint.Bottom => new Vector2(0.5f, 1f),
+                NodePoint.Child => new Vector2(0.5f, 1f),
                 _ => new Vector2(0.5f, 0.5f),// Default to center if unknown for some reason
             };
         }
@@ -445,6 +477,7 @@ namespace KhiemLuong
                 NodePoint.Right => Color.green,
                 NodePoint.Left => Color.green,
                 NodePoint.Bottom => Color.red,
+                NodePoint.Child => Color.cyan,
                 _ => Color.black,// Default to center if unknown for some reason
             };
         }
