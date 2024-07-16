@@ -21,7 +21,6 @@ namespace KhiemLuong
         }
         enum RelationType
         {
-            None,
             Parents,
             Partners,
             Children,
@@ -171,7 +170,7 @@ namespace KhiemLuong
                     isDragging = false;
                 }
         }
-        
+
         void DrawNodeWindow(int id)
         {
             while (polityMembers.Count <= id) polityMembers.Add(null);
@@ -188,13 +187,9 @@ namespace KhiemLuong
                             if (GUILayout.Button(RelationType.Parents.ToString()))
                                 relationType = RelationType.Parents;
                         if (GUILayout.Button(RelationType.Partners.ToString()))
-                        {
                             relationType = RelationType.Partners;
-                        }
                         if (GUILayout.Button(RelationType.Children.ToString()))
-                        {
                             relationType = RelationType.Children;
-                        }
                         if (!isRootGenerated)
                             GenerateRootNodeFamilyMembers();
                     }
@@ -233,35 +228,17 @@ namespace KhiemLuong
                         if (linkedRelationType.ContainsKey(id))
                             if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
                             {
-                                DeleteCurveToRootNode(id);
-                                linkedRelationType.Remove(id);
+                                // linkedRelationType.Remove(id);
                                 ClearRootNodeRelations(id);
+                                DeleteCurveToRootNode(id);
                             }
                         EditorGUILayout.EndHorizontal();
                         if (polityMembers[id] != null && nodes[id] != null)
-                        {
                             if (polityMembers[id].parents.Contains(polityMembers[0]) && polityMembers[id].parents.Count < 2)
                             {
                                 if (GUILayout.Button(RelationType.Parents.ToString()))
                                     childNodeId = id;
                             }
-                            if (linkedRelationType.ContainsKey(id))
-                                if (linkedRelationType[id] != RelationType.None)
-                                {
-                                    switch (linkedRelationType[id])
-                                    {
-                                        case RelationType.Parents:
-                                            EditorGUILayout.LabelField("Parent");
-                                            break;
-                                        case RelationType.Partners:
-                                            EditorGUILayout.LabelField("Partner");
-                                            break;
-                                        case RelationType.Children:
-                                            EditorGUILayout.LabelField("Child");
-                                            break;
-                                    }
-                                }
-                        }
                     }
                 }
                 else
@@ -347,7 +324,6 @@ namespace KhiemLuong
                 case RelationType.Partners:
                     root = new Node(rootId, NodePoint.Right);
                     target = new Node(id, NodePoint.Left);
-                    Debug.LogError("Shiet");
                     break;
                 case RelationType.Children:
                     root = new Node(rootId, NodePoint.Bottom);
@@ -362,7 +338,7 @@ namespace KhiemLuong
                 linkedRelationType[id] = relationType;
             else
                 linkedRelationType.Add(id, relationType);
-            relationType = RelationType.None;
+            // relationType = RelationType.None;
         }
         void AttachCurveToParentNode(int id)
         {
@@ -384,7 +360,7 @@ namespace KhiemLuong
         {
             List<Node> keysToRemove = new();
             foreach (var pair in linkedNodes)
-                if (pair.Key.NodeId == id || pair.Value.NodeId == rootId)
+                if (pair.Key.NodeId == id && pair.Value.NodeId == rootId)
                     keysToRemove.Add(pair.Key);
 
             foreach (var key in keysToRemove)
@@ -411,14 +387,6 @@ namespace KhiemLuong
                 Debug.Log("Relation to node " + rootId + " is: " + relation + " " + id);
                 switch (relation)
                 {
-                    case RelationType.None:
-                        Debug.LogError("No relations, deleting relation");
-                        if (rootId != 0)//This is a child to partner, i.e child to parent 
-                        {
-                            Debug.LogError("No relation Root id is " + rootId);
-                        }
-                        else ClearLinkedNodeRelations(rootId, id);
-                        break;
                     case RelationType.Parents:
                         if (!polityMembers[rootId].parents.Contains(polityMembers[id]))
                             polityMembers[rootId].parents.Add(polityMembers[id]);
@@ -463,14 +431,32 @@ namespace KhiemLuong
         /// </summary>
         void ClearLinkedNodeRelations(int rootId, int id)
         {
-            if (polityMembers[rootId].partners.Contains(polityMembers[id]))
-                polityMembers[rootId].partners.Remove(polityMembers[id]);
-            if (polityMembers[id].partners.Contains(polityMembers[rootId]))
-                polityMembers[id].partners.Remove(polityMembers[rootId]);
-            if (polityMembers[rootId].children.Contains(polityMembers[id]))
-                polityMembers[rootId].children.Remove(polityMembers[id]);
-            if (polityMembers[id].parents.Contains(polityMembers[rootId]))
-                polityMembers[id].parents.Remove(polityMembers[rootId]);
+            if (linkedRelationType.ContainsKey(id))
+            {
+                Debug.LogError("Linked " + linkedRelationType[id]);
+                switch (linkedRelationType[id])
+                {
+                    case RelationType.Partners:
+                        if (polityMembers[rootId].partners.Contains(polityMembers[id]))
+                            polityMembers[rootId].partners.Remove(polityMembers[id]);
+                        if (polityMembers[id].partners.Contains(polityMembers[rootId]))
+                            polityMembers[id].partners.Remove(polityMembers[rootId]);
+                        break;
+                    case RelationType.Parents:
+                        if (polityMembers[rootId].parents.Contains(polityMembers[id]))
+                            polityMembers[rootId].parents.Remove(polityMembers[id]);
+                        if (polityMembers[id].children.Contains(polityMembers[rootId]))
+                            polityMembers[id].children.Remove(polityMembers[rootId]);
+                        break;
+                    case RelationType.Children:
+                        if (polityMembers[rootId].children.Contains(polityMembers[id]))
+                            polityMembers[rootId].children.Remove(polityMembers[id]);
+                        if (polityMembers[id].parents.Contains(polityMembers[rootId]))
+                            polityMembers[id].parents.Remove(polityMembers[rootId]);
+                        break;
+                }
+                linkedRelationType.Remove(id);
+            }
         }
         void ClearRootNodeRelations(int id) => ClearLinkedNodeRelations(0, id);
 
