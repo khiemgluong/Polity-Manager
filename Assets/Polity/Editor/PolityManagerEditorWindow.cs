@@ -124,21 +124,18 @@ namespace KhiemLuong
                 DrawNodeCurve(nodes[pair.Value.NodeId], nodes[pair.Key.NodeId], pair.Value.Point, pair.Key.Point);
             for (int i = 0; i < nodes.Count; i++)
             {
-                if (i == 0) nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i);
+                if (i == 0) nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Root " + i);
                 else
                 {
                     if (linkedRelationType.ContainsKey(i))
                         switch (linkedRelationType[i])
                         {
                             case RelationType.Parents:
-                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i, parentNode);
-                                break;
+                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Parent " + i, parentNode); break;
                             case RelationType.Partners:
-                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i, partnerNode);
-                                break;
+                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Partner " + i, partnerNode); break;
                             case RelationType.Children:
-                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i, childrenNode);
-                                break;
+                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Child " + i, childrenNode); break;
                         }
                     else nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i);
                 }
@@ -167,10 +164,7 @@ namespace KhiemLuong
                     panY = dragStartPosition.y + delta.y;
                     Repaint();
                 }
-                else if (Event.current.type == EventType.MouseUp)
-                {
-                    isDragging = false;
-                }
+                else if (Event.current.type == EventType.MouseUp) isDragging = false;
         }
 
         void DrawNodeWindow(int id)
@@ -192,8 +186,7 @@ namespace KhiemLuong
                             relationType = RelationType.Partners;
                         if (GUILayout.Button(RelationType.Children.ToString()))
                             relationType = RelationType.Children;
-                        if (!isRootGenerated)
-                            GenerateRootNodeFamilyMembers();
+                        if (!isRootGenerated) GenerateRootNodeFamilyMembers();
                     }
                 }
             }
@@ -225,7 +218,23 @@ namespace KhiemLuong
                             else
                             {
                                 if (GUILayout.Button("Detach", GUILayout.ExpandWidth(true)))
-                                { ClearRootNodeRelations(id); DeleteCurveToRootNode(id); }
+                                {
+                                    DeleteCurveToRootNode(id);
+                                    if (linkedRelationType[id] == RelationType.Children)
+                                    {
+                                        PolityMember root = polityMembers[0];
+                                        for (int i = 0; i < root.partners.Count; i++)
+                                            for (int x = 0; x < root.partners[i].children.Count; x++)
+                                                if (root.partners[i].children[x] == polityMembers[id])
+                                                {
+                                                    childNodeId = polityMembers.IndexOf(root.partners[i]);
+                                                    DeleteCurveToParentNode(id);
+                                                    ClearChildNodeRelation(id);
+                                                    break;
+                                                }
+                                    }
+                                    ClearRootNodeRelations(id);
+                                }
                             }
                         }
                         else
@@ -365,7 +374,7 @@ namespace KhiemLuong
                 if (linkedRelationType[id] == RelationType.Partners)
                 {
                     if (linkedChildNodes.TryGetValue(target, out Node _target) && _target.Equals(target))
-                    { Debug.LogError("PolityMember pair already exists."); return; }
+                    { Debug.LogWarning("PolityMember pair already exists."); return; }
                     else linkedChildNodes.Add(root, target);
                 }
                 else Debug.LogWarning("A child relation can only be made to a Partner.");
@@ -385,7 +394,20 @@ namespace KhiemLuong
                 Debug.Log("Removed " + keysToRemove.Count + " connections with ID " + id);
         }
         void DeleteCurveToRootNode(int id) => DeleteCurveToNode(0, id);
+        void DeleteCurveToParentNode(int id)
+        {
+            List<Node> keysToRemove = new();
+            foreach (var pair in linkedChildNodes)
+                if (pair.Key.NodeId == id && pair.Value.NodeId == childNodeId)
+                    keysToRemove.Add(pair.Key);
 
+            foreach (var key in keysToRemove)
+                linkedChildNodes.Remove(key);
+            if (keysToRemove.Count > 0)
+                Debug.Log("Removed " + keysToRemove.Count + " child connections with ID " + id);
+        }
+
+        /* ------------------------- Set Node Relation Type ------------------------- */
         void SetNodeRelationTypes(int rootId, int id)
         {
             if (polityMembers[rootId] == null)
@@ -413,7 +435,6 @@ namespace KhiemLuong
                     case RelationType.Partners:
                         if (rootId != 0)//This is a child to partner, i.e child to parent 
                         {
-                            Debug.LogError("Root id is " + rootId);
                             if (!polityMembers[rootId].parents.Contains(polityMembers[id]))
                                 polityMembers[rootId].parents.Add(polityMembers[id]);
                             if (!polityMembers[id].children.Contains(polityMembers[rootId]))
@@ -438,18 +459,24 @@ namespace KhiemLuong
                         break;
                 }
             }
-            else Debug.LogError("No relation found for ID: " + id);
+            // else Debug.LogWarning("No relation found for ID: " + id);
         }
 
         void SetRootNodeRelationTypes(int id) => SetNodeRelationTypes(0, id);
         /// <summary>
         /// Clears relations from the start polity Member to its linked counterpart
         /// </summary>
+        void ClearChildNodeRelation(int id)
+        {
+            if (polityMembers[childNodeId].children.Contains(polityMembers[id]))
+                polityMembers[childNodeId].children.Remove(polityMembers[id]);
+            if (polityMembers[id].parents.Contains(polityMembers[childNodeId]))
+                polityMembers[id].parents.Remove(polityMembers[childNodeId]);
+        }
         void ClearLinkedNodeRelations(int rootId, int id)
         {
             if (linkedRelationType.ContainsKey(id))
             {
-                Debug.LogError("Linked " + linkedRelationType[id]);
                 switch (linkedRelationType[id])
                 {
                     case RelationType.Partners:
