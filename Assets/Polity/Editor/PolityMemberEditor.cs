@@ -45,20 +45,10 @@ namespace KhiemLuong
         {
             PolityMember polityMember = (PolityMember)target;
 
-
             SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(selectedPolityName, true);
             EditorGUI.EndDisabledGroup();
-
-            SerializedProperty parentsSerializedProp = serializedObject.FindProperty("parents");
-            EditorGUILayout.PropertyField(parentsSerializedProp, true);
-
-            SerializedProperty partnersSerializedProp = serializedObject.FindProperty("partners");
-            EditorGUILayout.PropertyField(partnersSerializedProp, true);
-
-            SerializedProperty childrenSerializedProp = serializedObject.FindProperty("children");
-            EditorGUILayout.PropertyField(childrenSerializedProp, true);
 
             if (hasPolityManagerBeenFound && polityNames != null)
             {
@@ -100,11 +90,17 @@ namespace KhiemLuong
                 polityMember.factionName = "";  // Clear any previous faction selection
             }
 
-            if (GUI.changed)
-            {
-                EditorUtility.SetDirty(target);
-            }
 
+            SerializedProperty parentsSerializedProp = serializedObject.FindProperty("parents");
+            SerializedProperty partnersSerializedProp = serializedObject.FindProperty("partners");
+            SerializedProperty childrenSerializedProp = serializedObject.FindProperty("children");
+
+            DrawReadOnlyPolityMembersList(parentsSerializedProp);
+            DrawReadOnlyPolityMembersList(partnersSerializedProp);
+            DrawReadOnlyPolityMembersList(childrenSerializedProp);
+
+            serializedObject.ApplyModifiedProperties();
+            if (GUI.changed) EditorUtility.SetDirty(target);
         }
 
         void InitializePolityNames()
@@ -138,6 +134,52 @@ namespace KhiemLuong
                 factionNames = new string[1]; // Just the empty entry if no factions are present
                 factionNames[0] = "";
                 selectedFactionIndex = 0;
+            }
+        }
+
+        bool InteractiveFoldout(bool foldout, string content)
+        {
+            // Get a rectangle in the layout for the foldout
+            Rect rect = GUILayoutUtility.GetRect(16f, 22f, new GUIStyle { fontStyle = FontStyle.Bold }); // You might need to adjust the style here
+                                                                                                         // Use a bold style and increase the height a bit to match typical foldouts
+
+            // Check for mouse events in the rect to toggle foldout
+            if (Event.current.type == EventType.MouseDown && rect.Contains(Event.current.mousePosition))
+            {
+                foldout = !foldout;
+                Event.current.Use(); // Mark the event as used so it doesn't propagate further
+            }
+
+            // Draw the foldout
+            EditorGUI.Foldout(rect, foldout, content, true);
+
+            return foldout;
+        }
+        void DrawReadOnlyPolityMembersList(SerializedProperty listProperty)
+        {
+            // Ensure the property is not null and is a list
+            if (listProperty != null && listProperty.isArray)
+            {
+                // Only show the foldout if there are elements in the list
+                if (listProperty.arraySize > 0)
+                {
+                    listProperty.isExpanded = InteractiveFoldout(listProperty.isExpanded, listProperty.displayName);
+                    if (listProperty.isExpanded)
+                    {
+                        EditorGUI.indentLevel++;
+
+                        // Temporarily disable GUI to make the properties read-only
+                        GUI.enabled = false;
+                        for (int i = 0; i < listProperty.arraySize; i++)
+                        {
+                            SerializedProperty item = listProperty.GetArrayElementAtIndex(i);
+                            EditorGUILayout.PropertyField(item, new GUIContent("Element " + i));
+                        }
+                        GUI.enabled = true; // Re-enable GUI after drawing the properties
+
+                        EditorGUI.indentLevel--;
+                    }
+                }
             }
         }
     }

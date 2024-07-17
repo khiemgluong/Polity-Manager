@@ -1,14 +1,11 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
 namespace KhiemLuong
 {
-    public class PolityManagerEditorWindow : EditorWindow
+    public class PolityMemberGraph : EditorWindow
     {
         /* ---------------------------- POLITY VARIABLES ---------------------------- */
         enum NodePoint
@@ -79,7 +76,7 @@ namespace KhiemLuong
         public static void ShowWindow()
         {
             // Get existing open window or if none, make a new one:
-            var window = GetWindow<PolityManagerEditorWindow>("Polity Manager");
+            var window = GetWindow<PolityMemberGraph>("Polity Manager");
             window.minSize = new Vector2(200, 100); // Define minimum size
             var screenResolution = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
             var windowSize = screenResolution * .33f; // Set window size to 1/3 of the screen size
@@ -100,10 +97,7 @@ namespace KhiemLuong
             /* -------------------------------------------------------------------------- */
             GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "Sidebar", GUI.skin.window);
             EditorGUILayout.BeginVertical();
-            if (GUILayout.Button("Create Node"))
-            {
-                nodes.Add(new Rect(10, 10, nodeSize.x, nodeSize.y));
-            }
+            if (GUILayout.Button("Create Node")) nodes.Add(new Rect(10, 10, nodeSize.x, nodeSize.y));
             EditorGUILayout.EndVertical();
             GUILayout.EndArea();
             /* ------------------------------- SIDEBAR END ------------------------------ */
@@ -271,11 +265,16 @@ namespace KhiemLuong
         {
             if (polityMembers[0] == null) return;
             PolityMember root = polityMembers[0];
+            root.parents = root.parents.Where(item => item != null).ToList();
+            root.partners = root.partners.Where(item => item != null).ToList();
+            root.children = root.children.Where(item => item != null).ToList();
+
             Rect rootNode = nodes[0];
+            float currentXOffset;
             /* -------------------------- Building Parent Nodes ------------------------- */
             for (int i = 0; i < root.parents.Count; i++)
             {
-                float currentXOffset = -nodeSize.x;
+                currentXOffset = -nodeSize.x;
                 polityMembers.Add(root.parents[i]);
                 if (i == 0)
                     nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
@@ -287,28 +286,27 @@ namespace KhiemLuong
                 relationType = RelationType.Parents;
                 AttachCurveToRootNode(i + 1);
             }
+            currentXOffset = nodeSize.x * 1.5f;
             /* ------------------------- Building Partner Nodes ------------------------- */
             List<int> partnersIds = new();
             for (int i = 0; i < root.partners.Count; i++)
             {
-                float currentXOffset = nodeSize.x;
                 polityMembers.Add(root.partners[i]);
                 if (i == 0)
-                    nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
                 else
                 {
-                    currentXOffset += nodeSize.x * 2.5f;
+                    currentXOffset += nodeSize.x * 1.5f;
                     nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Partners;
                 AttachCurveToRootNode(polityMembers.Count - 1);
                 partnersIds.Add(polityMembers.Count - 1);
             }
-
+            currentXOffset = nodeSize.x / 2;
             /* ------------------------- Building Children Nodes ------------------------ */
             for (int i = 0; i < root.children.Count; i++)
             {
-                float currentXOffset = nodeSize.x / 2;
                 polityMembers.Add(root.children[i]);
                 if (i == 0)
                     nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
@@ -339,8 +337,7 @@ namespace KhiemLuong
         void AttachCurveToRootNode(int id) => AttachCurveToNode(0, id);
         void AttachCurveToNode(int rootId, int id)
         {
-            if (linkedRelationType.ContainsKey(id))
-                return;
+            if (linkedRelationType.ContainsKey(id)) return;
             Node root, target;
             switch (relationType)
             {

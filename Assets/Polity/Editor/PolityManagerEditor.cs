@@ -81,13 +81,9 @@ namespace KhiemLuong
             // Save changes
             if (GUI.changed) EditorUtility.SetDirty(manager);
 
-            if (GUILayout.Button("Open My Window"))
+            if (GUILayout.Button("Polity Member Graph"))
             {
-                PolityMemberEditorWindow.ShowWindow();
-            }
-            if (GUILayout.Button("Open Editor Window"))
-            {
-                var window = EditorWindow.GetWindow<PolityManagerEditorWindow>("Polity Manager");
+                var window = EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
                 // window.SetPolityManager(manager);
                 // window.SetPolityObjects(manager.polities);
             }

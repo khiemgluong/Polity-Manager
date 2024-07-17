@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -29,6 +30,43 @@ namespace KhiemLuong
         void OnFactionStateChanged()
         {
         }
+        [ContextMenu("Refresh")]
+        void Refresh()
+        {
+            parents = parents.Where(item => item != null).ToList();
+            partners = partners.Where(item => item != null).ToList();
+            children = children.Where(item => item != null).ToList();
+            if (parents.Any())
+            {
+                List<PolityMember> toRemove = new List<PolityMember>();  // List to keep track of partners to remove
+                foreach (PolityMember parent in parents)
+                {
+                    if (!parent.parents.Contains(this))
+                    {
+                        toRemove.Add(parent);  // If not reciprocal, mark for removal
+                    }
+                }
+                foreach (PolityMember nonReciprocal in toRemove)
+                {
+                    parents.Remove(nonReciprocal);
+                    Debug.LogError($"Removed non-reciprocal parents: {nonReciprocal} from {this}'s partners list.");
+                }
+            }
+            if (partners.Any())  // Check if there are any partners
+            {
+                List<PolityMember> toRemove = new List<PolityMember>();  // List to keep track of partners to remove
+                foreach (PolityMember partner in partners)
+                    if (!partner.partners.Contains(this))
+                        toRemove.Add(partner);  // If not reciprocal, mark for removal
+
+                foreach (PolityMember nonReciprocal in toRemove)
+                {
+                    partners.Remove(nonReciprocal);
+                    Debug.LogError($"Removed non-reciprocal partner: {nonReciprocal} from {this}'s partners list.");
+                }
+            }
+        }
+
     }
 
     /// <summary>
