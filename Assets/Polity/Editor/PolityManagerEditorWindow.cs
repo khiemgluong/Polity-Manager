@@ -42,13 +42,14 @@ namespace KhiemLuong
         SerializedObject serializedObject;
         GUIStyle parentNode, partnerNode, childrenNode;
         List<Rect> nodes = new();
-        Vector2 nodeSize = new(150, 120);
+        Vector2 nodeSize = new(150, 110);
         /// <summary>
         /// This nodeId is referenced only in a node which is a child of the root node
         /// </summary>
         int childNodeId = -1;
         bool isRootGenerated;
         Dictionary<Node, Node> linkedNodes = new();
+        Dictionary<Node, Node> linkedChildNodes = new();
         Dictionary<int, RelationType> linkedRelationType = new();
 
         /* ------------------------------ PAN CONTROLS ------------------------------ */
@@ -119,7 +120,8 @@ namespace KhiemLuong
 
             foreach (var pair in linkedNodes)
                 DrawNodeCurve(nodes[pair.Key.NodeId], nodes[pair.Value.NodeId], pair.Key.Point, pair.Value.Point);
-
+            foreach (var pair in linkedChildNodes)
+                DrawNodeCurve(nodes[pair.Value.NodeId], nodes[pair.Key.NodeId], pair.Value.Point, pair.Key.Point);
             for (int i = 0; i < nodes.Count; i++)
             {
                 if (i == 0) nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i);
@@ -201,7 +203,6 @@ namespace KhiemLuong
                 {
                     if (!CheckForDuplicateNode(id))
                     {
-                        Debug.LogError("henlo");
                         SetRootNodeRelationTypes(id);
                         if (GUILayout.Button("Close Node"))
                         {
@@ -211,34 +212,31 @@ namespace KhiemLuong
                             polityMembers.Remove(polityMembers[id]);
                         }
                         EditorGUILayout.BeginHorizontal();
-                        if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
+
+                        if (linkedRelationType.ContainsKey(id))
                         {
-                            if (childNodeId == -1)
+                            if (linkedRelationType[id] == RelationType.Partners)
                             {
-                                AttachCurveToRootNode(id);
-                                SetRootNodeRelationTypes(id);
+                                if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
+                                    EstablishNodeConnection(id);
+                                if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
+                                { ClearRootNodeRelations(id); DeleteCurveToRootNode(id); }
                             }
                             else
                             {
-                                AttachCurveToParentNode(id);
-                                SetNodeRelationTypes(childNodeId, id);
-                                childNodeId = -1;
+                                if (GUILayout.Button("Detach", GUILayout.ExpandWidth(true)))
+                                { ClearRootNodeRelations(id); DeleteCurveToRootNode(id); }
                             }
                         }
-                        if (linkedRelationType.ContainsKey(id))
-                            if (GUILayout.Button("X", GUILayout.ExpandWidth(false)))
-                            {
-                                // linkedRelationType.Remove(id);
-                                ClearRootNodeRelations(id);
-                                DeleteCurveToRootNode(id);
-                            }
+                        else
+                        {
+                            if (GUILayout.Button("Attach", GUILayout.ExpandWidth(true)))
+                                EstablishNodeConnection(id);
+                        }
                         EditorGUILayout.EndHorizontal();
                         if (polityMembers[id] != null && nodes[id] != null)
                             if (polityMembers[id].parents.Contains(polityMembers[0]) && polityMembers[id].parents.Count < 2)
-                            {
-                                if (GUILayout.Button(RelationType.Parents.ToString()))
-                                    childNodeId = id;
-                            }
+                                if (GUILayout.Button("Parent")) childNodeId = id;
                     }
                 }
                 else
@@ -250,6 +248,13 @@ namespace KhiemLuong
             GUI.DragWindow();
         }
 
+        void EstablishNodeConnection(int id)
+        {
+            if (childNodeId == -1) { AttachCurveToRootNode(id); SetRootNodeRelationTypes(id); }
+            else
+            { AttachCurveToParentNode(id); SetNodeRelationTypes(childNodeId, id); childNodeId = -1; }
+        }
+
         /* -------------------------------------------------------------------------- */
         /*                             NODE INITIALIZATION                            */
         /* -------------------------------------------------------------------------- */
@@ -258,6 +263,7 @@ namespace KhiemLuong
             if (polityMembers[0] == null) return;
             PolityMember root = polityMembers[0];
             Rect rootNode = nodes[0];
+            /* -------------------------- Building Parent Nodes ------------------------- */
             for (int i = 0; i < root.parents.Count; i++)
             {
                 float currentXOffset = -nodeSize.x;
@@ -272,6 +278,8 @@ namespace KhiemLuong
                 relationType = RelationType.Parents;
                 AttachCurveToRootNode(i + 1);
             }
+            /* ------------------------- Building Partner Nodes ------------------------- */
+            List<int> partnersIds = new();
             for (int i = 0; i < root.partners.Count; i++)
             {
                 float currentXOffset = nodeSize.x;
@@ -280,15 +288,18 @@ namespace KhiemLuong
                     nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y, nodeSize.x, nodeSize.y));
                 else
                 {
-                    currentXOffset += nodeSize.x * 2f;
+                    currentXOffset += nodeSize.x * 2.5f;
                     nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Partners;
                 AttachCurveToRootNode(polityMembers.Count - 1);
+                partnersIds.Add(polityMembers.Count - 1);
             }
+
+            /* ------------------------- Building Children Nodes ------------------------ */
             for (int i = 0; i < root.children.Count; i++)
             {
-                float currentXOffset = -nodeSize.x;
+                float currentXOffset = nodeSize.x / 2;
                 polityMembers.Add(root.children[i]);
                 if (i == 0)
                     nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
@@ -298,7 +309,15 @@ namespace KhiemLuong
                     nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Children;
-                AttachCurveToRootNode(polityMembers.Count - 1);
+
+                int _i = polityMembers.IndexOf(root.children[i]);
+                AttachCurveToRootNode(_i);
+                for (int x = 0; x < partnersIds.Count; x++)
+                    if (polityMembers[partnersIds[x]].children.Contains(polityMembers[_i]))
+                    {
+                        childNodeId = _i;
+                        AttachCurveToParentNode(partnersIds[x]);
+                    }
             }
             isRootGenerated = true;
         }
@@ -338,19 +357,16 @@ namespace KhiemLuong
                 linkedRelationType[id] = relationType;
             else
                 linkedRelationType.Add(id, relationType);
-            // relationType = RelationType.None;
         }
         void AttachCurveToParentNode(int id)
         {
-            Node root = new(childNodeId, NodePoint.Top);
-            Node target = new(id, NodePoint.Child);
-
+            Node root = new(childNodeId, NodePoint.Top), target = new(id, NodePoint.Child);
             if (linkedRelationType.ContainsKey(id))
                 if (linkedRelationType[id] == RelationType.Partners)
                 {
-                    if (linkedNodes.TryGetValue(root, out Node existingTarget) && existingTarget.Equals(target))
-                    { Debug.LogError("Key-value pair already exists."); return; }
-                    else linkedNodes.Add(target, root);
+                    if (linkedChildNodes.TryGetValue(target, out Node _target) && _target.Equals(target))
+                    { Debug.LogError("PolityMember pair already exists."); return; }
+                    else linkedChildNodes.Add(root, target);
                 }
                 else Debug.LogWarning("A child relation can only be made to a Partner.");
         }
@@ -519,7 +535,7 @@ namespace KhiemLuong
             Vector3 endPos = new(end.x + end.width * vEndPercentage.x, end.y + end.height * vEndPercentage.y, 0);
             Vector3 startTan = startPos + Vector3.right * (-50 + 100 * vStartPercentage.x) + Vector3.up * (-50 + 100 * vStartPercentage.y);
             Vector3 endTan = endPos + Vector3.right * (-50 + 100 * vEndPercentage.x) + Vector3.up * (-50 + 100 * vEndPercentage.y);
-            Color shadowCol = new(200, 200, 200, 0.4f);
+            Color shadowCol = new(200, 200, 200, .25f);
             for (int i = 0; i < 3; i++) // Draw a shadow
                 Handles.DrawBezier(startPos, endPos, startTan, endTan, shadowCol, null, (i + 1) * 5);
             Handles.DrawBezier(startPos, endPos, startTan, endTan, lineColor, null, 2);
