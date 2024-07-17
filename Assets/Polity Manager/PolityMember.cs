@@ -80,5 +80,16 @@ namespace KhiemLuong
                 }
             }
         }
+
+        /* -------------------------------------------------------------------------- */
+        /*                             PUBLIC API METHODS                             */
+        /* -------------------------------------------------------------------------- */
+        /// <summary>
+        /// Changes the current PolityMember's polity, class and faction
+        /// </summary>
+        /// <param name="struct"></param>
+        public void ChangeMemberPolity(PolityStruct @struct){
+
+        }
     }
 }

@@ -25,7 +25,7 @@ namespace KhiemLuong
             if (EditorGUI.EndChangeCheck())
             {
                 serializedObject.ApplyModifiedProperties();
-                manager.DeserializeMatrix();
+                manager.DeserializePolityMatrix();
                 EditorUtility.SetDirty(manager);
             }
 
@@ -63,7 +63,7 @@ namespace KhiemLuong
                     {
                         manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
                         manager.relationships[j, i] = manager.relationships[i, j]; //Set reciprocal relationship
-                        manager.SerializeMatrix();
+                        manager.SerializePolityMatrix();
                         OnPolityRelationChange?.Invoke();
                     }
                     // EditorGUI.EndDisabledGroup();

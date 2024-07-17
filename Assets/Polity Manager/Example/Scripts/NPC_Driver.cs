@@ -10,8 +10,10 @@ namespace KhiemLuong
         Animator animator;
         NavMeshAgent agent;
         Transform currentDestination;
-        private Vector3 lastPosition;
-        private Vector3 currentVelocity;
+        Vector3 lastPosition;
+        Vector3 currentVelocity;
+        Vector3 spawnPos;
+        Quaternion spawnRot;
         void Start()
         {
             member = GetComponent<PolityMember>();
@@ -19,6 +21,9 @@ namespace KhiemLuong
             agent = GetComponent<NavMeshAgent>();
             SearchForPolityMembers();
             agent.avoidancePriority = Random.Range(1, 99);
+
+            spawnPos = transform.position;
+            spawnRot = transform.rotation;
         }
         void OnEnable()
         {
