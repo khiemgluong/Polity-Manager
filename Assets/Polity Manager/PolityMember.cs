@@ -23,13 +23,13 @@ namespace KhiemLuong
 
         void OnEnable()
         {
-            OnPolityRelationChange += OnFactionStateChanged;
+            OnPolityRelationChange += OnPolityStateChanged;
             OnPolityMemberChange += OnPolityMemberChanged;
         }
 
         void OnDisable()
         {
-            OnPolityRelationChange -= OnFactionStateChanged;
+            OnPolityRelationChange -= OnPolityStateChanged;
             OnPolityMemberChange -= OnPolityMemberChanged;
         }
 
@@ -40,7 +40,7 @@ namespace KhiemLuong
             children = children.Where(item => item != null).ToList();
         }
 
-        void OnFactionStateChanged()
+        void OnPolityStateChanged()
         {
         }
 

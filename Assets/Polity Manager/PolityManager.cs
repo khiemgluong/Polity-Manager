@@ -7,7 +7,7 @@ namespace KhiemLuong
 {
     public class PolityManager : MonoBehaviour
     {
-        public static PolityManager Singleton { get; private set; }
+        public static PolityManager PM { get; private set; }
         public PolityMember playerPolity;
         public Polity[] polities;
         public PolityRelation[,] relationships;
@@ -25,13 +25,9 @@ namespace KhiemLuong
 
         void Awake()
         {
-            if (Singleton != null && Singleton != this)
+            if (PM != null && PM != this)
                 Destroy(gameObject);
-            else
-            {
-                Singleton = this;
-                DontDestroyOnLoad(gameObject);
-            }
+            else PM = this;
             DeserializeMatrix();
             DisableInteractivity = true;
         }
@@ -89,34 +85,13 @@ namespace KhiemLuong
             Debug.LogError($"Modified relation between {polityMember.className} and {otherPolityName} to {factionRelation}");
         }
 
-        public PolityRelation CompareFactionRelation(PolityMember polityMember, PolityMember otherPolityMember)
+        public PolityRelation ComparePolityRelation(PolityMember polityMember, PolityMember otherPolityMember)
         {
-            // Extract selected faction names from both polity members
-            string polityMemberFactionName = polityMember.className;
-            string otherPolityMemberFactionName = otherPolityMember.className;
+            string yourPolityName = polityMember.polityName;
+            string theirPolityName = otherPolityMember.polityName;
 
-            // Initialize indices to -1 to indicate 'not found'
-            int memberIndex = -1;
-            int otherMemberIndex = -1;
-
-            // Loop through the polities array to find the indices
-            for (int i = 0; i < polities.Length; i++)
-            {
-                if (polities[i].name == polityMemberFactionName)
-                {
-                    memberIndex = i;
-                }
-                if (polities[i].name == otherPolityMemberFactionName)
-                {
-                    otherMemberIndex = i;
-                }
-
-                // Early exit if both indices are found
-                if (memberIndex != -1 && otherMemberIndex != -1)
-                    break;
-            }
-
-            // Check if both indices were found
+            int memberIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
+            int otherMemberIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
             if (memberIndex == -1 || otherMemberIndex == -1)
             {
                 Debug.LogError("One or both faction names not found in the polities array.");
@@ -124,7 +99,7 @@ namespace KhiemLuong
             }
 
             PolityRelation relation = relationships[memberIndex, otherMemberIndex];
-            Debug.Log($"The relationship between {polityMemberFactionName} and {otherPolityMemberFactionName} is {relation}  at index {memberIndex},{otherMemberIndex}");
+            Debug.Log($"The relationship between {yourPolityName} and {theirPolityName} is {relation} at index {memberIndex},{otherMemberIndex}");
             return relation;
         }
         public enum PolityType

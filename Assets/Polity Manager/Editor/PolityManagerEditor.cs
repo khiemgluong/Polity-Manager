@@ -62,6 +62,7 @@ namespace KhiemLuong
                     if (GUI.Button(rect, buttonContent))
                     {
                         manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
+                        manager.relationships[j, i] = manager.relationships[i, j]; //Set reciprocal relationship
                         manager.SerializeMatrix();
                         OnPolityRelationChange?.Invoke();
                     }
