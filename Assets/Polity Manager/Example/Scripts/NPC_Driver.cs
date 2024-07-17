@@ -7,6 +7,7 @@ namespace KhiemLuong
     public class NPC_Driver : MonoBehaviour
     {
         PolityMember member;
+        Animator animator;
         NavMeshAgent agent;
         Transform currentDestination;
         private Vector3 lastPosition;
@@ -14,6 +15,7 @@ namespace KhiemLuong
         void Start()
         {
             member = GetComponent<PolityMember>();
+            animator = GetComponent<Animator>();
             agent = GetComponent<NavMeshAgent>();
             SearchForPolityMembers();
             agent.avoidancePriority = Random.Range(1, 99);
@@ -36,11 +38,10 @@ namespace KhiemLuong
 
                 currentVelocity = (transform.position - lastPosition) / Time.deltaTime;
                 lastPosition = transform.position;
-                Debug.LogError("agent dist " + agent.remainingDistance + "  " + GetRelativeVelocity2());
-
+                animator.SetFloat("Blend", GetRelativeVelocity().y);
                 if (agent.remainingDistance < 1.1f)
                 {
-
+                    animator.SetLayerWeight(1, 1);
                 }
             }
         }
