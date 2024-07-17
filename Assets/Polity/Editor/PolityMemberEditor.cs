@@ -31,10 +31,7 @@ namespace KhiemLuong
                     UpdateFactionNames(selectedPolityIndex);
                     if (polityManager != null)
                     {
-                        foreach (var familyName in polityManager.families)
-                        {
-                            Debug.LogError(familyName.surname);
-                        }
+                        
                     }
                     hasPolityManagerBeenFound = true;
                 }

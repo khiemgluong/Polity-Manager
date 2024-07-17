@@ -37,9 +37,9 @@ namespace KhiemLuong
             }
         }
         SerializedObject serializedObject;
-        GUIStyle parentNode, partnerNode, childrenNode;
+        GUIStyle parentNode, partnerNode, childNode;
         List<Rect> nodes = new();
-        Vector2 nodeSize = new(150, 110);
+        Vector2 nodeSize = new(150, 65);
         /// <summary>
         /// This nodeId is referenced only in a node which is a child of the root node
         /// </summary>
@@ -63,8 +63,8 @@ namespace KhiemLuong
             parentNode.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node6.png") as Texture2D;
             partnerNode = new GUIStyle(GUI.skin.window);
             partnerNode.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node3.png") as Texture2D;
-            childrenNode = new GUIStyle(GUI.skin.window);
-            childrenNode.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
+            childNode = new GUIStyle(GUI.skin.window);
+            childNode.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
 
             nodes.Clear();
             polityMembers.Clear();
@@ -75,7 +75,6 @@ namespace KhiemLuong
         }
         public static void ShowWindow()
         {
-            // Get existing open window or if none, make a new one:
             var window = GetWindow<PolityMemberGraph>("Polity Manager");
             window.minSize = new Vector2(200, 100); // Define minimum size
             var screenResolution = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
@@ -95,9 +94,14 @@ namespace KhiemLuong
             /* -------------------------------------------------------------------------- */
             /*                                  SIDEBAR                                   */
             /* -------------------------------------------------------------------------- */
-            GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "Sidebar", GUI.skin.window);
+            GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "", GUI.skin.window);
             EditorGUILayout.BeginVertical();
-            if (GUILayout.Button("Create Node")) nodes.Add(new Rect(10, 10, nodeSize.x, nodeSize.y));
+            if (GUILayout.Button("Add Node"))
+            {
+                if (polityMembers[0] != null)
+                    nodes.Add(new Rect(nodes[0].x, nodes[0].y - 100, nodeSize.x, nodeSize.y));
+                else Debug.LogWarning("You must assign a root PolityMember first");
+            }
             EditorGUILayout.EndVertical();
             GUILayout.EndArea();
             /* ------------------------------- SIDEBAR END ------------------------------ */
@@ -106,7 +110,7 @@ namespace KhiemLuong
             /* -------------------------------------------------------------------------- */
             /*                                 MAIN PANEL                                 */
             /* -------------------------------------------------------------------------- */
-            GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "Main Window", GUI.skin.window);
+            GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "", GUI.skin.window);
 
             Rect groupRect = new(panX, panY, 10000, 10000);
             GUI.BeginGroup(groupRect);
@@ -117,8 +121,16 @@ namespace KhiemLuong
             foreach (var pair in linkedChildNodes)
                 DrawNodeCurve(nodes[pair.Value.NodeId], nodes[pair.Key.NodeId], pair.Value.Point, pair.Key.Point);
             for (int i = 0; i < nodes.Count; i++)
-            {
-                if (i == 0) nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Root " + i);
+                if (i == 0)
+                {
+                    if (polityMembers.Any()) if (polityMembers[0] != null)
+                        {
+                            if (polityMembers[0].parents.Count < 2)
+                                nodes[i] = new Rect(nodes[0].x, nodes[0].y, nodeSize.x, 105);
+                            else nodes[i] = new Rect(nodes[0].x, nodes[0].y, nodeSize.x, 90);
+                        }
+                    nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Root " + i);
+                }
                 else
                 {
                     if (linkedRelationType.ContainsKey(i))
@@ -129,11 +141,14 @@ namespace KhiemLuong
                             case RelationType.Partners:
                                 nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Partner " + i, partnerNode); break;
                             case RelationType.Children:
-                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Child " + i, childrenNode); break;
+                                if (polityMembers[i] != null)
+                                    if (polityMembers[i].parents.Count == 1)
+                                        nodes[i] = new Rect(nodes[i].x, nodes[i].y, nodeSize.x, 90);
+                                    else nodes[i] = new Rect(nodes[i].x, nodes[i].y, nodeSize.x, 65);
+                                nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Child " + i, childNode); break;
                         }
                     else nodes[i] = GUI.Window(i, nodes[i], DrawNodeWindow, "Node " + i);
                 }
-            }
             EndWindows();
             GUI.EndGroup();
             GUILayout.EndArea();
@@ -191,15 +206,8 @@ namespace KhiemLuong
                     if (!CheckForDuplicateNode(id))
                     {
                         SetRootNodeRelationTypes(id);
-                        if (GUILayout.Button("Close Node"))
-                        {
-                            DeleteCurveToRootNode(id);
-                            nodes.Remove(nodes[id]);
-                            linkedRelationType.Remove(id);
-                            polityMembers.Remove(polityMembers[id]);
-                        }
-                        EditorGUILayout.BeginHorizontal();
 
+                        EditorGUILayout.BeginHorizontal();
                         if (linkedRelationType.ContainsKey(id))
                         {
                             if (linkedRelationType[id] == RelationType.Partners)
@@ -277,27 +285,27 @@ namespace KhiemLuong
                 currentXOffset = -nodeSize.x;
                 polityMembers.Add(root.parents[i]);
                 if (i == 0)
-                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 2f, nodeSize.x, nodeSize.y));
                 else
                 {
                     currentXOffset += nodeSize.x * 2f;
-                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y - nodeSize.y * 2f, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Parents;
                 AttachCurveToRootNode(i + 1);
             }
-            currentXOffset = nodeSize.x * 1.5f;
+            currentXOffset = nodeSize.x * 2f;
             /* ------------------------- Building Partner Nodes ------------------------- */
             List<int> partnersIds = new();
             for (int i = 0; i < root.partners.Count; i++)
             {
                 polityMembers.Add(root.partners[i]);
                 if (i == 0)
-                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y * 1.05f, nodeSize.x, nodeSize.y));
                 else
                 {
-                    currentXOffset += nodeSize.x * 1.5f;
-                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y, nodeSize.x, nodeSize.y));
+                    currentXOffset += nodeSize.x * 2f;
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y * 1.05f, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Partners;
                 AttachCurveToRootNode(polityMembers.Count - 1);
@@ -309,11 +317,11 @@ namespace KhiemLuong
             {
                 polityMembers.Add(root.children[i]);
                 if (i == 0)
-                    nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset * 2f, rootNode.y + nodeSize.y * 2f, nodeSize.x, nodeSize.y));
                 else
                 {
                     currentXOffset += nodeSize.x * 2f;
-                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y + nodeSize.y * 1.5f, nodeSize.x, nodeSize.y));
+                    nodes.Add(new Rect(rootNode.x + currentXOffset, rootNode.y + nodeSize.y * 2f, nodeSize.x, nodeSize.y));
                 }
                 relationType = RelationType.Children;
 

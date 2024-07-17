@@ -17,14 +17,21 @@ namespace KhiemLuong
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
-        private void OnEnable()
+        void OnEnable()
         {
             OnFactionStateChange += OnFactionStateChanged;
         }
 
-        private void OnDisable()
+        void OnDisable()
         {
             OnFactionStateChange -= OnFactionStateChanged;
+        }
+
+        void Awake()
+        {
+            parents = parents.Where(item => item != null).ToList();
+            partners = partners.Where(item => item != null).ToList();
+            children = children.Where(item => item != null).ToList();
         }
 
         void OnFactionStateChanged()
@@ -36,48 +43,25 @@ namespace KhiemLuong
             parents = parents.Where(item => item != null).ToList();
             partners = partners.Where(item => item != null).ToList();
             children = children.Where(item => item != null).ToList();
-            if (parents.Any())
+            ValidateRelationships(parents, member => member.children, "parent");
+            ValidateRelationships(partners, member => member.partners, "partner");
+            ValidateRelationships(children, member => member.parents, "child");
+        }
+        void ValidateRelationships(List<PolityMember> ownList, Func<PolityMember, List<PolityMember>> getOppositeList, string relationshipType)
+        {
+            if (ownList.Any())
             {
-                List<PolityMember> toRemove = new List<PolityMember>();  // List to keep track of partners to remove
-                foreach (PolityMember parent in parents)
-                {
-                    if (!parent.parents.Contains(this))
-                    {
-                        toRemove.Add(parent);  // If not reciprocal, mark for removal
-                    }
-                }
-                foreach (PolityMember nonReciprocal in toRemove)
-                {
-                    parents.Remove(nonReciprocal);
-                    Debug.LogError($"Removed non-reciprocal parents: {nonReciprocal} from {this}'s partners list.");
-                }
-            }
-            if (partners.Any())  // Check if there are any partners
-            {
-                List<PolityMember> toRemove = new List<PolityMember>();  // List to keep track of partners to remove
-                foreach (PolityMember partner in partners)
-                    if (!partner.partners.Contains(this))
-                        toRemove.Add(partner);  // If not reciprocal, mark for removal
+                List<PolityMember> toRemove = new List<PolityMember>();
+                foreach (PolityMember member in ownList)
+                    if (!getOppositeList(member).Contains(this))
+                        toRemove.Add(member);
 
                 foreach (PolityMember nonReciprocal in toRemove)
                 {
-                    partners.Remove(nonReciprocal);
-                    Debug.LogError($"Removed non-reciprocal partner: {nonReciprocal} from {this}'s partners list.");
+                    ownList.Remove(nonReciprocal);
+                    Debug.Log($"Removed non-reciprocal {relationshipType}: {nonReciprocal} from {this}'s {relationshipType} list.");
                 }
             }
         }
-
-    }
-
-    /// <summary>
-    /// This is the smallest polity unit, which refers to a surname that its members will carry
-    /// </summary>
-    [Serializable]
-    public class FamilyObject
-    {
-        public string surname;
-        public List<PolityMember> parents;
-        public PolityMember partner;
-        public List<PolityMember> children;
     }
 }

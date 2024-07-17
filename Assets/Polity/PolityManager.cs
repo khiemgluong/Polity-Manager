@@ -9,8 +9,6 @@ namespace KhiemLuong
     {
         public static PolityManager Singleton { get; private set; }
         public PolityMember playerPolity;
-        public List<FamilyObject> families = new List<FamilyObject>();
-
         public PolityObject[] polities;
         public PolityRelation[,] relationships;
         public static Action OnFactionStateChange;
@@ -150,26 +148,25 @@ namespace KhiemLuong
         {
             public string name;
             public Transform capital;
-            public FactionObject[] factions;
+            public Faction[] factions;
         }
         /// <summary>
         /// Could represent a social class, government branch, corporation, or any large collective unit
         /// </summary>
         [Serializable]
-        public class FactionObject
+        public class Faction
         {
             public string name;
-            // public FactionObject[] factions;
+            public Group[] groups;
         }
 
         /// <summary>
         /// Represents a collection of families or units grouped by a common interest, locality, or purpose.
         /// </summary>
         [Serializable]
-        public class CompanyObject
+        public class Group
         {
             public string name;
-            public Transform town;
         }
 
         public interface IPolityStateChangeListener
