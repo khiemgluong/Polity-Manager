@@ -439,7 +439,6 @@ namespace KhiemLuong
                         if (!polityMembers[id].children.Contains(polityMembers[rootId]))
                             polityMembers[id].children.Add(polityMembers[rootId]);
                         break;
-
                     case RelationType.Partners:
                         if (rootId != 0)//This is a child to partner, i.e child to parent 
                         {

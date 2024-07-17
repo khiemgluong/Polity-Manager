@@ -9,7 +9,7 @@ namespace KhiemLuong
     {
         public static PolityManager Singleton { get; private set; }
         public PolityMember playerPolity;
-        public PolityObject[] polities;
+        public Polity[] polities;
         public PolityRelation[,] relationships;
         public static Action OnPolityStateChange;
         [Serializable]
@@ -86,14 +86,14 @@ namespace KhiemLuong
             relationships[0, 1] = factionRelation;
             relationships[1, 0] = factionRelation;
             // DeserializeMatrix();
-            Debug.LogError($"Modified relation between {polityMember.factionName} and {otherPolityName} to {factionRelation}");
+            Debug.LogError($"Modified relation between {polityMember.className} and {otherPolityName} to {factionRelation}");
         }
 
         public PolityRelation CompareFactionRelation(PolityMember polityMember, PolityMember otherPolityMember)
         {
             // Extract selected faction names from both polity members
-            string polityMemberFactionName = polityMember.factionName;
-            string otherPolityMemberFactionName = otherPolityMember.factionName;
+            string polityMemberFactionName = polityMember.className;
+            string otherPolityMemberFactionName = otherPolityMember.className;
 
             // Initialize indices to -1 to indicate 'not found'
             int memberIndex = -1;
@@ -139,27 +139,27 @@ namespace KhiemLuong
             Democracy        // Government by the people, directly or through elected representatives.
         }
         [Serializable]
-        public class PolityObject
+        public class Polity
         {
             public string name;
             public Transform capital;
-            public Faction[] factions;
+            public Class[] classes;
         }
         /// <summary>
         /// Could represent a social class, government branch, corporation, or any large collective unit
         /// </summary>
         [Serializable]
-        public class Faction
+        public class Class
         {
             public string name;
-            public Group[] groups;
+            public Faction[] factions;
         }
 
         /// <summary>
         /// Represents a collection of families or units grouped by a common interest, locality, or purpose.
         /// </summary>
         [Serializable]
-        public class Group
+        public class Faction
         {
             public string name;
         }

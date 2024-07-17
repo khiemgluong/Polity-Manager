@@ -10,7 +10,7 @@ namespace KhiemLuong
     public class PolityMember : MonoBehaviour
     {
         public string polityName;
-        public bool polityLeader;
+        public string className;
         public string factionName;
         public List<PolityMember> parents;
         public List<PolityMember> partners;
@@ -41,6 +41,12 @@ namespace KhiemLuong
             parents = parents.Where(item => item != null).ToList();
             partners = partners.Where(item => item != null).ToList();
             children = children.Where(item => item != null).ToList();
+        }
+
+        [ContextMenu("Reset Relationships")]
+        void ResetRelationships()
+        {
+            Refresh();
             ValidateRelationships(parents, member => member.children, "parent");
             ValidateRelationships(partners, member => member.partners, "partner");
             ValidateRelationships(children, member => member.parents, "child");
