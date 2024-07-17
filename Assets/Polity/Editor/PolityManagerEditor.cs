@@ -65,6 +65,7 @@ namespace KhiemLuong
                             manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
                             manager.relationships[j, i] = manager.relationships[i, j]; // Optional: Set reciprocal relationship
                             manager.SerializeMatrix();
+                            OnPolityStateChange?.Invoke();
                         }
                         // EditorGUI.EndDisabledGroup();
 

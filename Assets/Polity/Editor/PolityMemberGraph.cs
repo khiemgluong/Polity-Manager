@@ -66,10 +66,16 @@ namespace KhiemLuong
             childNode = new GUIStyle(GUI.skin.window);
             childNode.normal.background = EditorGUIUtility.Load("builtin skins/darkskin/images/node1.png") as Texture2D;
 
-            nodes.Clear();
-            polityMembers.Clear();
-            linkedNodes.Clear();
-            Vector2 windowCenter = new(position.width / 3, position.height / 3);
+            nodes.Clear(); polityMembers.Clear(); linkedNodes.Clear(); linkedRelationType.Clear();
+            Vector2 windowCenter = new(position.width, position.height / 3);
+            Rect nodeRect = new(windowCenter.x + nodeSize.x, windowCenter.y + nodeSize.y, nodeSize.x, nodeSize.y);
+            nodes.Add(nodeRect);
+        }
+
+        void CreateRootNode()
+        {
+            nodes.Clear(); polityMembers.Clear(); linkedNodes.Clear(); linkedRelationType.Clear();
+            Vector2 windowCenter = new(position.width, position.height / 3);
             Rect nodeRect = new(windowCenter.x + nodeSize.x, windowCenter.y + nodeSize.y, nodeSize.x, nodeSize.y);
             nodes.Add(nodeRect);
         }
@@ -78,31 +84,29 @@ namespace KhiemLuong
             var window = GetWindow<PolityMemberGraph>("Polity Manager");
             window.minSize = new Vector2(200, 100); // Define minimum size
             var screenResolution = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
-            var windowSize = screenResolution * .33f; // Set window size to 1/3 of the screen size
-            var windowPosition = (screenResolution - windowSize) * .33f; // Center the window
+            var windowSize = screenResolution * .2f; // Set window size to 1/3 of the screen size
+            var windowPosition = (screenResolution - windowSize) * .2f; // Center the window
             // Set the window size and position
             window.position = new Rect(windowPosition.x, windowPosition.y, windowSize.x, windowSize.y);
             window.Show();
         }
         void OnGUI()
         {
-            float sidebarWidth = position.width * .1f;
-            float mainPanelWidth = position.width;
-            float sidebarHeight = position.height * .4f;
-            float mainPanelHeight = position.height;
-
             /* -------------------------------------------------------------------------- */
             /*                                  SIDEBAR                                   */
             /* -------------------------------------------------------------------------- */
-            GUILayout.BeginArea(new Rect(0, 0, sidebarWidth, sidebarHeight), "", GUI.skin.window);
-            EditorGUILayout.BeginVertical();
-            if (GUILayout.Button("Add Node"))
+            float topBarHeight = position.height * .1f; float topBarWidth = position.width;
+            GUILayout.BeginArea(new Rect(0, 0, topBarWidth, topBarHeight), "", GUI.skin.window);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add Node", GUILayout.ExpandWidth(false)))
             {
                 if (polityMembers[0] != null)
                     nodes.Add(new Rect(nodes[0].x, nodes[0].y - 100, nodeSize.x, nodeSize.y));
                 else Debug.LogWarning("You must assign a root PolityMember first");
             }
-            EditorGUILayout.EndVertical();
+            if (GUILayout.Button("Reset Node", GUILayout.ExpandWidth(false)))
+                Debug.Log("Reset Node doesn't do anything right now.");
+            EditorGUILayout.EndHorizontal();
             GUILayout.EndArea();
             /* ------------------------------- SIDEBAR END ------------------------------ */
 
@@ -110,8 +114,8 @@ namespace KhiemLuong
             /* -------------------------------------------------------------------------- */
             /*                                 MAIN PANEL                                 */
             /* -------------------------------------------------------------------------- */
-            GUILayout.BeginArea(new Rect(sidebarWidth, 0, mainPanelWidth, mainPanelHeight), "", GUI.skin.window);
-
+            float mainPanelWidth = position.width; float mainPanelHeight = position.height - topBarHeight;
+            GUILayout.BeginArea(new Rect(0, topBarHeight, mainPanelWidth, mainPanelHeight), "", GUI.skin.window);
             Rect groupRect = new(panX, panY, 10000, 10000);
             GUI.BeginGroup(groupRect);
             BeginWindows();
@@ -427,7 +431,6 @@ namespace KhiemLuong
             if (polityMembers[id] == null) return;
             if (linkedRelationType.TryGetValue(id, out RelationType relation))
             {
-                Debug.Log("Relation to node " + rootId + " is: " + relation + " " + id);
                 switch (relation)
                 {
                     case RelationType.Parents:

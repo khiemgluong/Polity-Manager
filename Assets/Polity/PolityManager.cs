@@ -11,7 +11,7 @@ namespace KhiemLuong
         public PolityMember playerPolity;
         public PolityObject[] polities;
         public PolityRelation[,] relationships;
-        public static Action OnFactionStateChange;
+        public static Action OnPolityStateChange;
         [Serializable]
         public enum PolityRelation
         {
@@ -55,11 +55,6 @@ namespace KhiemLuong
                 for (int j = 0; j < size; j++)
                     relationships[i, j] = PolityRelation.Neutral;
             SerializeMatrix();
-        }
-
-        public void TriggerFactionStateChange()
-        {
-            OnFactionStateChange?.Invoke();
         }
 
         public void ModifyPolityRelation(PolityMember polityMember, string otherPolityName, PolityRelation factionRelation)

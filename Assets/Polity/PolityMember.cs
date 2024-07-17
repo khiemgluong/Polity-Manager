@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace KhiemLuong
 {
@@ -10,7 +9,6 @@ namespace KhiemLuong
     [DisallowMultipleComponent]
     public class PolityMember : MonoBehaviour
     {
-        // public PolityMemberFamily polityMemberFamily;
         public string polityName;
         public bool polityLeader;
         public string factionName;
@@ -19,12 +17,12 @@ namespace KhiemLuong
         public List<PolityMember> children;
         void OnEnable()
         {
-            OnFactionStateChange += OnFactionStateChanged;
+            OnPolityStateChange += OnFactionStateChanged;
         }
 
         void OnDisable()
         {
-            OnFactionStateChange -= OnFactionStateChanged;
+            OnPolityStateChange -= OnFactionStateChanged;
         }
 
         void Awake()
