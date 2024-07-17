@@ -12,103 +12,68 @@ namespace KhiemLuong
         int selectedPolityIndex;
         int selectedClassIndex;
         int selectedFactionIndex;
+        SerializedProperty selectedPolityIndexProp;
+        SerializedProperty selectedClassIndexProp;
+        SerializedProperty selectedFactionIndexProp;
         bool hasPolityManagerBeenFound = false; // Ensure this variable is correctly utilized
 
         void OnEnable()
         {
-            // Attempt to load PolityManager on enable if not already found
             GetPolityManagerData();
         }
 
         void GetPolityManagerData()
         {
-            if (!hasPolityManagerBeenFound)
+            if (polityManager == null)
             {
                 polityManager = FindObjectOfType<PolityManager>();
-                if (polityManager != null && polityManager.polities != null)
-                {
-                    InitializePolityNames();
-                    PolityMember polityMember = (PolityMember)target;
-                    polityMember.polityName = polityNames[selectedPolityIndex];
-                    UpdateClassNames(selectedPolityIndex);
-                    if (polityManager != null)
-                    {
+            }
 
-                    }
-                    hasPolityManagerBeenFound = true;
+            if (polityManager != null && polityManager.polities != null)
+            {
+                InitializePolityNames();
+                selectedPolityIndexProp = serializedObject.FindProperty("selectedPolityIndex");
+                selectedClassIndexProp = serializedObject.FindProperty("selectedClassIndex");
+                selectedFactionIndexProp = serializedObject.FindProperty("selectedFactionIndex");
+
+                // Ensure the serialized properties are up-to-date
+                serializedObject.Update();
+
+                selectedPolityIndex = selectedPolityIndexProp.intValue;
+                selectedClassIndex = selectedClassIndexProp.intValue;
+                selectedFactionIndex = selectedFactionIndexProp.intValue;
+
+                // Update class names based on the initially selected polity index
+                UpdateClassNames(selectedPolityIndex);
+
+                // If there is a valid class index selected, update faction names
+                if (selectedClassIndex > 0)
+                {
+                    UpdateFactionNames(selectedPolityIndex, selectedClassIndex);
                 }
+
+                serializedObject.ApplyModifiedProperties();
+                hasPolityManagerBeenFound = true;
             }
         }
-
         public override void OnInspectorGUI()
         {
-            PolityMember polityMember = (PolityMember)target;
+            PolityMember p = (PolityMember)target;
 
             SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
             EditorGUI.BeginDisabledGroup(true);
             EditorGUILayout.PropertyField(selectedPolityName, true);
             EditorGUI.EndDisabledGroup();
 
-            if (hasPolityManagerBeenFound && polityNames != null)
-            {
-                EditorGUI.BeginChangeCheck();
-                selectedPolityIndex = EditorGUILayout.Popup("Polity", selectedPolityIndex, polityNames);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    polityMember.polityName = polityNames[selectedPolityIndex];
-                    UpdateClassNames(selectedPolityIndex);
-                    // Important: Since we are changing a property that affects the display of another property,
-                    // we need to update the serialized object to reflect these changes.
-                    serializedObject.Update();
-                }
-            }
+            serializedObject.Update();
 
-            if (classNames != null && classNames.Length > 0)
-            {
-                EditorGUI.BeginChangeCheck();
-                selectedClassIndex = EditorGUILayout.Popup("Class", selectedClassIndex, classNames);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    polityMember.className = classNames[selectedClassIndex];
-                    if (selectedClassIndex > 0) // Check if the selected class is not "None"
-                    {
-                        UpdateFactionNames(selectedPolityIndex, selectedClassIndex); // Update factions based on selected class
-                    }
-                    else
-                    {
-                        // Handle "None" selection: Clear factions and set default values
-                        factionNames = new string[] { "None" };
-                        selectedFactionIndex = 0;
-                        polityMember.factionName = "";  // Clear any previous faction selection
-                    }
-                    serializedObject.Update();
-                    Debug.LogError("Class index " + selectedClassIndex);
-                }
-            }
-            else
-            {
-                GUILayout.Label("No classes available for this polity.");
-                polityMember.className = "";  // Clear any previous class selection
-            }
+            selectedPolityIndex = selectedPolityIndexProp.intValue;
+            selectedClassIndex = selectedClassIndexProp.intValue;
+            selectedFactionIndex = selectedFactionIndexProp.intValue;
 
-            // Display the faction dropdown only if the selected class is not "None"
-            if (selectedClassIndex > 0 && factionNames != null && factionNames.Length > 0)
-            {
-                EditorGUI.BeginChangeCheck();
-                selectedFactionIndex = EditorGUILayout.Popup("Faction", selectedFactionIndex, factionNames);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    polityMember.factionName = factionNames[selectedFactionIndex];
-                }
-            }
-            else if (selectedClassIndex > 0)
-            {
-                GUILayout.Label("No factions available for this class.");
-                polityMember.factionName = "";  // Clear any previous faction selection
-            }
-
-            serializedObject.ApplyModifiedProperties();
-
+            HandlePolitySelection(p);
+            HandleClassSelection(p);
+            HandleFactionSelection(p);
 
             SerializedProperty parentsSerializedProp = serializedObject.FindProperty("parents");
             SerializedProperty partnersSerializedProp = serializedObject.FindProperty("partners");
@@ -121,6 +86,75 @@ namespace KhiemLuong
             serializedObject.ApplyModifiedProperties();
             if (GUI.changed) EditorUtility.SetDirty(target);
         }
+
+        /* -------------------------------------------------------------------------- */
+        /*                             Selection Handlers                             */
+        /* -------------------------------------------------------------------------- */
+        void HandlePolitySelection(PolityMember p)
+        {
+            if (hasPolityManagerBeenFound && polityNames != null)
+            {
+                EditorGUI.BeginChangeCheck();
+                selectedPolityIndex = EditorGUILayout.Popup("Polity", selectedPolityIndex, polityNames);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    p.polityName = polityNames[selectedPolityIndex];
+                    selectedPolityIndexProp.intValue = selectedPolityIndex;
+                    selectedPolityIndexProp.serializedObject.ApplyModifiedProperties();
+                    UpdateClassNames(selectedPolityIndex);
+                }
+            }
+        }
+
+        void HandleClassSelection(PolityMember p)
+        {
+            if (classNames != null && classNames.Length > 0)
+            {
+                EditorGUI.BeginChangeCheck();
+                selectedClassIndex = EditorGUILayout.Popup("Class", selectedClassIndex, classNames);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    p.className = classNames[selectedClassIndex];
+                    selectedClassIndexProp.intValue = selectedClassIndex;
+                    selectedClassIndexProp.serializedObject.ApplyModifiedProperties();
+                    if (selectedClassIndex > 0) // Check if the selected class is not "None"
+                        UpdateFactionNames(selectedPolityIndex, selectedClassIndex);
+                    else
+                    {
+                        factionNames = new string[] { "None" };
+                        selectedFactionIndex = 0;
+                        p.factionName = "";  // Clear any previous faction selection
+                    }
+                    serializedObject.Update();
+                }
+            }
+            else
+            {
+                GUILayout.Label("No classes available for this polity.");
+                p.className = "";  // Clear any previous class selection
+            }
+        }
+
+        void HandleFactionSelection(PolityMember p)
+        {
+            if (selectedClassIndex > 0 && factionNames != null && factionNames.Length > 0)
+            {
+                EditorGUI.BeginChangeCheck();
+                selectedFactionIndex = EditorGUILayout.Popup("Faction", selectedFactionIndex, factionNames);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    p.factionName = factionNames[selectedFactionIndex];
+                    selectedFactionIndexProp.intValue = selectedFactionIndex;
+                    selectedFactionIndexProp.serializedObject.ApplyModifiedProperties(); // Apply changes immediately after modifying them
+                }
+            }
+            else if (selectedClassIndex > 0)
+            {
+                GUILayout.Label("No factions available for this class.");
+                p.factionName = "";  // Clear any previous faction selection
+            }
+        }
+        /* ------------------------- End Selection Handlers ------------------------- */
 
         void InitializePolityNames()
         {
@@ -135,7 +169,6 @@ namespace KhiemLuong
                 // Create a new array with an extra slot for "None"
                 classNames = new string[polityManager.polities[polityIndex].classes.Length + 1];
                 classNames[0] = "None"; // First entry is empty
-
                 // Fill the rest of the array with class names
                 for (int i = 0; i < polityManager.polities[polityIndex].classes.Length; i++)
                 {
