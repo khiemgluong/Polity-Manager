@@ -32,8 +32,11 @@ namespace KhiemLuong
             DisableInteractivity = true;
         }
 
-        public void SerializeMatrix() =>
+        public string SerializeMatrix()
+        {
             serializedRelationships = JsonConvert.SerializeObject(relationships);
+            return serializedRelationships;
+        }
 
         [ContextMenu("Refresh Relation Matrix")]
         public void DeserializeMatrix()
