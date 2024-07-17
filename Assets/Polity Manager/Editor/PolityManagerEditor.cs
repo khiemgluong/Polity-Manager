@@ -37,12 +37,12 @@ namespace KhiemLuong
             // Create the matrix GUI with headers
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space(-47);
-            EditorGUILayout.LabelField("", GUILayout.Width(headerWidth)); // Top-left corner blank space
-            foreach (var faction in manager.polities)
+            EditorGUILayout.LabelField("", GUILayout.Width(headerWidth));
+            for (int j = manager.polities.Length - 1; j >= 0; j--)
             {
-                GUILayout.Space(-1); // Add space before each label
-                Rect labelRect = GUILayoutUtility.GetRect(new GUIContent(faction.name), GUI.skin.label, GUILayout.Width(gridSize), GUILayout.Height(headerWidth));
-                RotateText(labelRect, faction.name, 270);
+                GUILayout.Space(-1);
+                Rect labelRect = GUILayoutUtility.GetRect(new GUIContent(manager.polities[j].name), GUI.skin.label, GUILayout.Width(gridSize), GUILayout.Height(headerWidth));
+                RotateText(labelRect, manager.polities[j].name, 270);
             }
             EditorGUILayout.EndHorizontal();
 
@@ -51,28 +51,25 @@ namespace KhiemLuong
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField(manager.polities[i].name, new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleRight }, GUILayout.Width(headerWidth));
 
-                for (int j = 0; j < manager.polities.Length; j++)
+                // Create a grid but only for entries above the diagonal
+                for (int j = manager.polities.Length - 1; j > i; j--) // Note the condition and the decrement
                 {
                     string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.relationships[i, j]}";
-                    GUIContent buttonContent = new("", tooltipText);  // Tooltip text as the second parameter
+                    GUIContent buttonContent = new GUIContent("", tooltipText);  // Tooltip text as the second parameter
                     Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
-                    if (i == j) EditorGUI.DrawRect(rect, Color.gray); // Self-relation, grayed out
-                    else
-                    {
-                        // EditorGUI.BeginDisabledGroup(manager.DisableInteractivity);
-                        if (GUI.Button(rect, buttonContent))
-                        {
-                            manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
-                            manager.relationships[j, i] = manager.relationships[i, j]; // Optional: Set reciprocal relationship
-                            manager.SerializeMatrix();
-                            OnPolityStateChange?.Invoke();
-                        }
-                        // EditorGUI.EndDisabledGroup();
 
-                        Color color = GetColorForRelationship(manager.relationships[i, j]);
-                        EditorGUI.DrawRect(rect, color);
-                        GUI.Label(rect, ""); // Optionally add labels or icons
+                    // EditorGUI.BeginDisabledGroup(manager.DisableInteractivity);
+                    if (GUI.Button(rect, buttonContent))
+                    {
+                        manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
+                        manager.SerializeMatrix();
+                        OnPolityRelationChange?.Invoke();
                     }
+                    // EditorGUI.EndDisabledGroup();
+
+                    Color color = GetColorForRelationship(manager.relationships[i, j]);
+                    EditorGUI.DrawRect(rect, color);
+                    GUI.Label(rect, ""); // Optionally add labels or icons
                 }
                 EditorGUILayout.EndHorizontal();
             }

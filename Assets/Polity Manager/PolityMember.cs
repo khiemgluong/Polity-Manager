@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 namespace KhiemLuong
@@ -9,33 +10,29 @@ namespace KhiemLuong
     [DisallowMultipleComponent]
     public class PolityMember : MonoBehaviour
     {
-        [SerializeField] public string polityName;
-        [SerializeField] public string className;
-        [SerializeField] public string factionName;
+        public string polityName;
+        public string className;
+        public string factionName;
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
-
         [SerializeField] int selectedPolityIndex = 0;
         [SerializeField] int selectedClassIndex = 0;
         [SerializeField] int selectedFactionIndex = 0;
+        public static Action OnPolityMemberChange;
 
-        [SerializeField]
-        public bool preventAutoReset = false;
         void OnEnable()
         {
-            OnPolityStateChange += OnFactionStateChanged;
+            OnPolityRelationChange += OnFactionStateChanged;
+            OnPolityMemberChange += OnPolityMemberChanged;
         }
 
         void OnDisable()
         {
-            OnPolityStateChange -= OnFactionStateChanged;
+            OnPolityRelationChange -= OnFactionStateChanged;
+            OnPolityMemberChange -= OnPolityMemberChanged;
         }
-        [ContextMenu("Reset Data")]
-        void ResetData()
-        {
-            preventAutoReset = false; // Allow OnEnable to reinitialize data next time
-        }
+
         void Awake()
         {
             parents = parents.Where(item => item != null).ToList();
@@ -45,6 +42,11 @@ namespace KhiemLuong
 
         void OnFactionStateChanged()
         {
+        }
+
+        void OnPolityMemberChanged()
+        {
+
         }
         [ContextMenu("Refresh")]
         void Refresh()

@@ -11,7 +11,7 @@ namespace KhiemLuong
         public PolityMember playerPolity;
         public Polity[] polities;
         public PolityRelation[,] relationships;
-        public static Action OnPolityStateChange;
+        public static Action OnPolityRelationChange;
         [Serializable]
         public enum PolityRelation
         {
@@ -124,7 +124,7 @@ namespace KhiemLuong
             }
 
             PolityRelation relation = relationships[memberIndex, otherMemberIndex];
-            Debug.Log($"The relationship between {polityMemberFactionName} and {otherPolityMemberFactionName} is {relation}");
+            Debug.Log($"The relationship between {polityMemberFactionName} and {otherPolityMemberFactionName} is {relation}  at index {memberIndex},{otherMemberIndex}");
             return relation;
         }
         public enum PolityType
