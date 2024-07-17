@@ -47,6 +47,8 @@ namespace KhiemLuong
                 if (agent.remainingDistance < 1.1f)
                 {
                     animator.SetLayerWeight(1, 1);
+                    PM.ModifyPolityRelation(member, currentDestination.GetComponent<PolityMember>().polityName, PolityRelation.Allies);
+                    // currentDestination = null;
                 }
             }
         }

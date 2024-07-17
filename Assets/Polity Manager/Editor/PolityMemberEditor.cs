@@ -164,7 +164,6 @@ namespace KhiemLuong
         }
 
         /* ------------------------- End Selection Handlers ------------------------- */
-
         void UpdatePolityName()
         {
             serializedObject.Update();  // Make sure to load the latest values
@@ -190,20 +189,16 @@ namespace KhiemLuong
                 classNames[0] = "None"; // First entry is empty
                 // Fill the rest of the array with class names
                 for (int i = 0; i < polityManager.polities[polityIndex].classes.Length; i++)
-                {
                     classNames[i + 1] = polityManager.polities[polityIndex].classes[i].name;
-                }
 
                 // Only reset the selected index if it's out of bounds now
                 if (selectedClassIndex >= classNames.Length || selectedClassIndex < 0)
-                {
-                    selectedClassIndex = 0; // Reset to "None" if the previous selection is now invalid
-                }
+                    selectedClassIndex = 0; // Reset to "None" if the previous selection is invalid
             }
             else
             {
                 // Handle the case where there are no classes
-                classNames = new string[1]; // Just the empty entry
+                classNames = new string[1];
                 classNames[0] = "None";
                 selectedClassIndex = 0;
             }
@@ -219,12 +214,12 @@ namespace KhiemLuong
             {
                 Class _class = polityManager.polities[polityIndex].classes[adjustedClassIndex];
 
-                if (_class.factions != null && _class.factions.Length > 0)
+                if (_class.factions != null && _class.factions.Count > 0)
                 {
-                    factionNames = new string[_class.factions.Length + 1];
+                    factionNames = new string[_class.factions.Count + 1];
                     factionNames[0] = "None"; // First entry is empty to represent no faction selected
 
-                    for (int i = 0; i < _class.factions.Length; i++)
+                    for (int i = 0; i < _class.factions.Count; i++)
                         factionNames[i + 1] = _class.factions[i].name;
 
                     selectedFactionIndex = 0;

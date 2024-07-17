@@ -16,9 +16,9 @@ namespace KhiemLuong
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
-        [SerializeField] int selectedPolityIndex = 0;
-        [SerializeField] int selectedClassIndex = 0;
-        [SerializeField] int selectedFactionIndex = 0;
+        [SerializeField] int selectedPolityIndex;
+        [SerializeField] int selectedClassIndex;
+        [SerializeField] int selectedFactionIndex;
         public static Action OnPolityMemberChange;
 
         void OnEnable()
@@ -85,11 +85,51 @@ namespace KhiemLuong
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
         /// <summary>
-        /// Changes the current PolityMember's polity, class and faction
+        /// Changes the current PolityMember's polity, class and faction.
+        /// Sets the member's polity based on what parameters were provided, omitting factionName for example, will not set the factionName
         /// </summary>
-        /// <param name="struct"></param>
-        public void ChangeMemberPolity(PolityStruct @struct){
+        public void ChangeMemberPolity(ref PolityStruct _struct)
+        {
+            // Check if the polity name is provided and is not null or empty
+            if (!string.IsNullOrEmpty(_struct.polityName))
+            {
+                foreach (var polity in PM.polities)
+                    if (_struct.polityName.Equals(polity.name))
+                    {
+                        polityName = polity.name;
+                        selectedPolityIndex = Array.IndexOf(PM.polities, polity);
+                        if (!string.IsNullOrEmpty(_struct.className))
+                        {
+                            foreach (var polityClass in polity.classes)
+                                if (_struct.className.Equals(polityClass.name))
+                                {
+                                    className = _struct.className;
+                                    selectedClassIndex = Array.IndexOf(polity.classes, polityClass) + 1;
 
+                                    if (!string.IsNullOrEmpty(_struct.factionName))
+                                    {
+                                        foreach (var faction in polityClass.factions)
+                                            if (_struct.factionName.Equals(faction.name))
+                                            {
+                                                factionName = _struct.factionName;
+                                                selectedFactionIndex = polityClass.factions.IndexOf(faction) + 1;
+                                                return; // All matches found, end the method
+                                            }
+                                        Debug.LogError("No Faction Match Found");
+                                        selectedFactionIndex = 0;
+                                        return;
+                                    }
+                                    return;
+                                }
+                            Debug.LogError("No Class Match Found");
+                            selectedClassIndex = 0;
+                            return;
+                        }
+                        return;
+                    }
+                Debug.LogError("No Polity Match Found");
+            }
+            else Debug.LogError("No Polity Name Provided");
         }
     }
 }

@@ -52,14 +52,14 @@ namespace KhiemLuong
 
         /* --------------------------------- Getters -------------------------------- */
         /// <summary>
-        /// Gets the current PolityRelation from one PolityMember to another
+        /// Gets the current PolityRelation from one PolityMember to another.
         /// </summary>
-        /// <returns>the PolityRelation enum as Neutral, Allies or Enemies</returns>
-        public PolityRelation ComparePolityRelation(PolityMember polityMember, PolityMember otherPolityMember)
+        /// <returns>The PolityRelation enum as Neutral, Allies, or Enemies.</returns>
+        public PolityRelation ComparePolityRelation(PolityMember polityMember, PolityMember otherPolityMember) =>
+               ComparePolityRelation(polityMember, otherPolityMember.polityName);
+        public PolityRelation ComparePolityRelation(PolityMember polityMember, string theirPolityName)
         {
             string yourPolityName = polityMember.polityName;
-            string theirPolityName = otherPolityMember.polityName;
-
             int yourIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
             if (yourIndex == -1 || theirIndex == -1)
@@ -97,8 +97,8 @@ namespace KhiemLuong
                 Debug.LogError("One or both polity names not found.");
                 return;
             }
-            relationships[0, 1] = factionRelation;
-            relationships[1, 0] = factionRelation;
+            relationships[memberIndex, theirIndex] = factionRelation;
+            relationships[theirIndex, memberIndex] = factionRelation;
             SerializePolityMatrix();
             Debug.Log($"Modified relation between {polityMember.polityName} & {theirPolityName} to {factionRelation}");
         }
@@ -137,8 +137,8 @@ namespace KhiemLuong
         }
 
         /// <summary>
-        /// Could represent a tribe, clan or community grouped by a common interest, locality, or purpose.
-        /// Referenced as a List, so it is the only political unit which can be added and removed at runtime.
+        /// Could represent a temporary political unit, such as a roving bandit squad or impromptu team.
+        /// Referenced as a List, so it's the only political unit which can be added & removed at runtime.
         /// </summary>
         [Serializable]
         public class Faction
@@ -159,12 +159,9 @@ namespace KhiemLuong
         /// </summary>
         public struct PolityStruct
         {
-            string polityName;
-            int polityIndex;
-            string className;
-            int classIndex;
-            string factionName;
-            int factionIndex;
+            public string polityName;
+            public string className;
+            public string factionName;
         }
     }
 }
