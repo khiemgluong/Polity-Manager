@@ -30,7 +30,10 @@ namespace KhiemLuong
             DeserializePolityMatrix();
         }
 
-        [ContextMenu("Reset Relation Matrix")]
+        [ContextMenu("Load Polity Matrix")]
+        void LoadSerializedPolityMatrix() => DeserializePolityMatrix();
+
+        [ContextMenu("Reset Polity Matrix")]
         void ResetPolityMatrix()
         {
             int size = polities.Length;
@@ -44,12 +47,12 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
-        public void DeserializePolityMatrix()
+        public void DeserializePolityMatrix(string _serializedRelationships)
         {
-            if (!string.IsNullOrEmpty(serializedRelationships))
-                relationships = JsonConvert.DeserializeObject<PolityRelation[,]>(serializedRelationships);
+            if (!string.IsNullOrEmpty(_serializedRelationships))
+                relationships = JsonConvert.DeserializeObject<PolityRelation[,]>(_serializedRelationships);
         }
-
+        public void DeserializePolityMatrix() => DeserializePolityMatrix(serializedRelationships);
 
         /* --------------------------------- Getters -------------------------------- */
         /// <summary>

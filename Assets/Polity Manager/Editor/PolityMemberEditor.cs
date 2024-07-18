@@ -15,13 +15,9 @@ namespace KhiemLuong
         SerializedProperty selectedPolityIndexProp;
         SerializedProperty selectedClassIndexProp;
         SerializedProperty selectedFactionIndexProp;
-        bool hasPolityManagerBeenFound = false; // Ensure this variable is correctly utilized
+        bool isPolityManagerFound = false;
 
-        void OnEnable()
-        {
-            GetPolityManagerData();
-            SerializePolityName();
-        }
+        void OnEnable() => GetPolityManagerData();
         void GetPolityManagerData()
         {
             if (polityManager == null) polityManager = FindObjectOfType<PolityManager>();
@@ -48,7 +44,7 @@ namespace KhiemLuong
                     UpdateFactionNames(selectedPolityIndex, selectedClassIndex);
 
                 serializedObject.ApplyModifiedProperties();
-                hasPolityManagerBeenFound = true;
+                isPolityManagerFound = true;
             }
         }
         public override void OnInspectorGUI()
@@ -87,7 +83,7 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         void HandlePolitySelection(PolityMember p)
         {
-            if (hasPolityManagerBeenFound && polityNames != null)
+            if (isPolityManagerFound && polityNames != null)
             {
                 EditorGUI.BeginChangeCheck();
                 selectedPolityIndex = EditorGUILayout.Popup("Polity", selectedPolityIndex, polityNames);
@@ -113,16 +109,14 @@ namespace KhiemLuong
                 {
                     p.className = classNames[selectedClassIndex];
                     selectedClassIndexProp.intValue = selectedClassIndex;
-                    selectedClassIndexProp.serializedObject.ApplyModifiedProperties(); // Apply changes immediately after modifying them
-                    if (selectedClassIndex > 0) // Check if the selected class is not "None"
-                        UpdateFactionNames(selectedPolityIndex, selectedClassIndex);
-                    else
-                    {
-                        factionNames = new string[] { "None" };
-                        selectedFactionIndex = 0;
-                        p.factionName = "";  // Clear any previous faction selection
-                    }
+                    selectedClassIndexProp.serializedObject.ApplyModifiedProperties();
+                    factionNames = new string[] { "None" };
+                    selectedFactionIndex = 0;
+                    selectedFactionIndexProp.intValue = selectedFactionIndex;
+                    selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
+                    p.factionName = "";  // Clear any previous faction selection
                     SerializeClassName();
+                    SerializeFactionName();
                 }
             }
             else if (classNames == null || classNames.Length <= 1) // If no classes or only "None"
@@ -201,15 +195,12 @@ namespace KhiemLuong
                 adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex].classes.Length)
             {
                 Class _class = polityManager.polities[polityIndex].classes[adjustedClassIndex];
-
                 if (_class.factions != null && _class.factions.Count > 0)
                 {
                     factionNames = new string[_class.factions.Count + 1];
                     factionNames[0] = "None"; // First entry is empty to represent no faction selected
-
                     for (int i = 0; i < _class.factions.Count; i++)
                         factionNames[i + 1] = _class.factions[i].name;
-
                     selectedFactionIndex = 0;
                 }
                 else

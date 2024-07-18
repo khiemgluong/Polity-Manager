@@ -56,15 +56,13 @@ namespace KhiemLuong
                     GUIContent buttonContent = new GUIContent("", tooltipText);  // Tooltip text as the second parameter
                     Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
 
-                    // EditorGUI.BeginDisabledGroup(manager.DisableInteractivity);
                     if (GUI.Button(rect, buttonContent))
                     {
                         manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
                         manager.relationships[j, i] = manager.relationships[i, j]; //Set reciprocal relationship
-                        manager.SerializePolityMatrix();
                         OnPolityRelationChange?.Invoke();
+                        manager.SerializePolityMatrix();
                     }
-                    // EditorGUI.EndDisabledGroup();
 
                     Color color = GetColorForRelationship(manager.relationships[i, j]);
                     EditorGUI.DrawRect(rect, color);
@@ -114,9 +112,9 @@ namespace KhiemLuong
         {
             return current switch
             {
-                PolityRelation.Neutral => PolityRelation.Enemies,
-                PolityRelation.Allies => PolityRelation.Neutral,
-                PolityRelation.Enemies => PolityRelation.Allies,
+                PolityRelation.Neutral => PolityRelation.Allies,
+                PolityRelation.Allies => PolityRelation.Enemies,
+                PolityRelation.Enemies => PolityRelation.Neutral,
                 _ => PolityRelation.Neutral,
             };
         }
