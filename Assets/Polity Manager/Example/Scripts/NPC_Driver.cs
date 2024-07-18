@@ -12,7 +12,14 @@ namespace KhiemLuong
         Vector3 lastPosition;
         Vector3 currentVelocity;
         Vector3 spawnPos;
-        public PolityMember closestTarget = null;
+        public PolityMember enemyTarget = null;
+        /// <summary>
+        /// This PolityMember is retrieved from an Ally's NPC_driver enemyTarget.
+        /// </summary>
+        public PolityMember allyEnemyTarget = null;
+
+        void Awake()
+        { enemyTarget = null; allyEnemyTarget = null; }
         void Start()
         {
             member = GetComponent<PolityMember>();
@@ -23,69 +30,64 @@ namespace KhiemLuong
 
             spawnPos = transform.position;
         }
-        void OnEnable()
-        {
-            OnPolityRelationChange += OnPolityStateChanged;
-        }
+        void OnEnable() => OnPolityRelationChange += OnPolityStateChanged;
         // Update is called once per frame
         void Update()
         {
-            if (closestTarget != null)
-            {
-                agent.SetDestination(closestTarget.transform.position);
-                Vector3 direction = (closestTarget.transform.position - transform.position).normalized;
-                float singleStep = agent.angularSpeed * Time.deltaTime;
-
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, singleStep);
-
-                if (agent.remainingDistance < 1.05f) animator.SetLayerWeight(1, 1);
-            }
+            if (allyEnemyTarget != null) MoveTowardsPolityMemberTarget(allyEnemyTarget);
+            else if (enemyTarget != null) MoveTowardsPolityMemberTarget(enemyTarget);
             currentVelocity = (transform.position - lastPosition) / Time.deltaTime;
             lastPosition = transform.position;
             animator.SetFloat("Blend", GetRelativeVelocity().y);
         }
 
-        public Vector2 GetRelativeVelocity()
+        void MoveTowardsPolityMemberTarget(PolityMember polityMember)
+        {
+            agent.SetDestination(polityMember.transform.position);
+            Vector3 direction = (polityMember.transform.position - transform.position).normalized;
+            float singleStep = agent.angularSpeed * Time.deltaTime;
+
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, singleStep);
+
+            if (agent.remainingDistance < 1.05f) animator.SetLayerWeight(1, 1);
+        }
+
+        Vector2 GetRelativeVelocity()
         {
             Vector3 localVelocity = transform.InverseTransformDirection(currentVelocity);
             return new Vector2(localVelocity.x, localVelocity.z);
         }
 
-        public Vector2 GetRelativeVelocity2()
-        {
-            Vector3 forward = transform.forward;
-            Vector3 right = transform.right;
 
-            float forwardVelocity = Vector3.Dot(currentVelocity, forward);
-            float rightVelocity = Vector3.Dot(currentVelocity, right);
-
-            return new Vector2(rightVelocity, forwardVelocity);
-        }
         readonly float detectionRadius = 35.0f;
 
         void OnPolityStateChanged()
         {
-            if (closestTarget != null)
+            if (allyEnemyTarget != null)
             {
-                PolityRelation relation = PM.ComparePolityRelation(member, closestTarget);
-                Debug.LogError("!relation! " + relation + " " + gameObject.name + " to " + closestTarget.name, gameObject);
-                //If there was a closestTarget but the relation was neutral, we know that the target was an enemy of an ally
+                PolityRelation relation = PM.ComparePolityRelation(member, allyEnemyTarget);
+                Debug.Log("Ally: " + relation + " " + gameObject.name + " to " + allyEnemyTarget.name, gameObject);
+                switch (relation)
+                {
+                    case PolityRelation.Neutral:
+                        Debug.Log("Ally neutral");
+                        allyEnemyTarget = null;
+                        SearchForPolityMembers();
+                        break;
+                }
+            }
+            else if (enemyTarget != null)
+            {
+                PolityRelation relation = PM.ComparePolityRelation(member, enemyTarget);
                 if (relation == PolityRelation.Neutral)
                 {
-                    Debug.LogError("Neutral");
-                    SearchForPolityMembers();
-
+                    Debug.Log("Enemy Neutral");
+                    enemyTarget = null;
+                    animator.SetLayerWeight(1, 0);
+                    agent.SetDestination(spawnPos);
                 }
-                else if (relation == PolityRelation.Enemies)
-                {
-                    Debug.LogError("Enemies");
-
-                }
-                else
-                {
-                    SearchForPolityMembers();
-                }
+                else SearchForPolityMembers();
             }
             else SearchForPolityMembers();
         }
@@ -103,13 +105,12 @@ namespace KhiemLuong
                         {
                             case PolityRelation.Allies:
                                 NPC_Driver allyNPC = polityMember.GetComponent<NPC_Driver>();
-                                if (allyNPC.closestTarget != null)
-                                    closestTarget = allyNPC.closestTarget;
-                                // PM.ModifyPolityRelation(member, closestTarget.polityName, PolityRelation.Enemies);
+                                if (allyNPC.enemyTarget != null)
+                                    allyEnemyTarget = allyNPC.enemyTarget;
                                 break;
                             case PolityRelation.Enemies:
-                                Debug.LogError("Enemy " + gameObject.name, gameObject);
-                                closestTarget = polityMember;
+                                allyEnemyTarget = null;
+                                enemyTarget = polityMember;
                                 agent.updateRotation = false;
                                 break;
                         }

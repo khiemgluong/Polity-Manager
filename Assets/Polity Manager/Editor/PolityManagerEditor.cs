@@ -1,3 +1,4 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -54,19 +55,26 @@ namespace KhiemLuong
                 {
                     string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.relationships[i, j]}";
                     GUIContent buttonContent = new GUIContent("", tooltipText);  // Tooltip text as the second parameter
-                    Rect rect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
+                    Rect gridRect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
 
-                    if (GUI.Button(rect, buttonContent))
+                    if (GUI.Button(gridRect, buttonContent))
                     {
-                        manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]);
-                        manager.relationships[j, i] = manager.relationships[i, j]; //Set reciprocal relationship
+                        switch (Event.current.button)
+                        {
+                            case 0: // Left mouse button
+                                manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]); break;
+                            case 1: // Right mouse button
+                                manager.relationships[i, j] = GetBackRelationship(manager.relationships[i, j]); break;
+                            default: return;
+                        }
+                        manager.relationships[j, i] = manager.relationships[i, j];//Set reciprocal
                         OnPolityRelationChange?.Invoke();
                         manager.SerializePolityMatrix();
                     }
 
                     Color color = GetColorForRelationship(manager.relationships[i, j]);
-                    EditorGUI.DrawRect(rect, color);
-                    GUI.Label(rect, ""); // Optionally add labels or icons
+                    EditorGUI.DrawRect(gridRect, color);
+                    GUI.Label(gridRect, ""); // Optionally add labels or icons
                 }
                 EditorGUILayout.EndHorizontal();
             }
@@ -107,7 +115,6 @@ namespace KhiemLuong
                 _ => Color.white,
             };
         }
-
         PolityRelation GetNextRelationship(PolityRelation current)
         {
             return current switch
@@ -115,6 +122,16 @@ namespace KhiemLuong
                 PolityRelation.Neutral => PolityRelation.Allies,
                 PolityRelation.Allies => PolityRelation.Enemies,
                 PolityRelation.Enemies => PolityRelation.Neutral,
+                _ => PolityRelation.Neutral,
+            };
+        }
+        PolityRelation GetBackRelationship(PolityRelation current)
+        {
+            return current switch
+            {
+                PolityRelation.Neutral => PolityRelation.Enemies,
+                PolityRelation.Enemies => PolityRelation.Allies,
+                PolityRelation.Allies => PolityRelation.Neutral,
                 _ => PolityRelation.Neutral,
             };
         }
