@@ -93,7 +93,18 @@ namespace KhiemLuong
                     selectedPolityIndexProp.intValue = selectedPolityIndex;
                     selectedPolityIndexProp.serializedObject.ApplyModifiedProperties();
                     UpdateClassNames(selectedPolityIndex);
+
+                    selectedClassIndex = 0;
+                    selectedClassIndexProp.intValue = selectedClassIndex;
+                    selectedClassIndexProp.serializedObject.ApplyModifiedProperties();
+
+                    selectedFactionIndex = 0;
+                    selectedFactionIndexProp.intValue = selectedFactionIndex;
+                    selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
+
                     SerializePolityName();
+                    SerializeClassName();
+                    SerializeFactionName();
                 }
             }
         }

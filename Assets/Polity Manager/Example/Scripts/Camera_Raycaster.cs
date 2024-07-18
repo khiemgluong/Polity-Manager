@@ -35,6 +35,14 @@ namespace KhiemLuong
                 return;
             }
 
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+
+            if (scroll != 0)
+            {
+                Camera.main.fieldOfView -= scroll * 15f;
+                Camera.main.fieldOfView = Mathf.Clamp(Camera.main.fieldOfView, 40, 100);
+            }
+
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
             if (Physics.Raycast(ray, out RaycastHit hit, 100))

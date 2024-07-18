@@ -9,7 +9,6 @@ namespace KhiemLuong
     public class PolityManager : MonoBehaviour
     {
         public static PolityManager PM { get; private set; }
-        public PolityMember playerPolity;
         public Polity[] polities;
         public static Action OnPolityRelationChange;
         [Serializable]
@@ -85,9 +84,9 @@ namespace KhiemLuong
         /// <summary>
         /// Gets the emblem texture of the polity, or its class and faction if the properties for those have been provided.
         /// </summary>
-        public Texture GetPolityEmblem(PolityStruct _struct)
+        public Texture2D GetPolityEmblem(PolityStruct _struct)
         {
-            Texture emblem;
+            Texture2D emblem;
             if (!string.IsNullOrEmpty(_struct.polityName))
             {
                 foreach (var polity in PM.polities)
@@ -195,7 +194,7 @@ namespace KhiemLuong
             /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
             /// </summary>
             [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
-            public Texture emblem;
+            public Texture2D emblem;
         }
 
         /* -------------------------------------------------------------------------- */
