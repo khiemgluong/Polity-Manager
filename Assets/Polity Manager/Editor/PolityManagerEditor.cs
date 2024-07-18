@@ -20,8 +20,6 @@ namespace KhiemLuong
             SerializedProperty playerPolity = serializedObject.FindProperty("playerPolity");
             EditorGUILayout.PropertyField(playerPolity, true);
 
-            SerializedProperty serializedRelationships = serializedObject.FindProperty("serializedRelationships");
-            EditorGUILayout.PropertyField(serializedRelationships, true);
             if (EditorGUI.EndChangeCheck())
             {
                 serializedObject.ApplyModifiedProperties();

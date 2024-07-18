@@ -79,6 +79,9 @@ namespace KhiemLuong
             return serializedRelationships;
         }
 
+        /// <summary>
+        /// Gets the emblem texture of the polity, or its class and faction if the properties for those have been provided.
+        /// </summary>
         public Texture GetPolityEmblem(PolityStruct _struct)
         {
             Texture emblem;
@@ -115,7 +118,7 @@ namespace KhiemLuong
             else { Debug.LogError("No Polity Name Provided"); return null; }
         }
 
-        // public PolityMember[] GetAllMembersFromPolity(PolityStruct @struct){
+        // public PolityMember[] GetAllMembersFromPolity(PolityStruct _struct){
 
         // }
         /* --------------------------------- Setters -------------------------------- */
@@ -174,7 +177,6 @@ namespace KhiemLuong
 
         /// <summary>
         /// Could represent a temporary political unit, such as a roving bandit squad or impromptu team.
-        /// Referenced as a List, so it's the only political unit which can be added & removed at runtime.
         /// </summary>
         [Serializable]
         public class Faction : PolityBase

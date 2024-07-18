@@ -20,7 +20,6 @@
 
 # Recordings can get excessive in size
 /[Rr]ecordings/
-
 # Whitelist .cs, .unity, .cs.meta, and audio files ONLY within the Assets folder
 /Assets/*.cs
 /Assets/*.cs.meta
@@ -31,32 +30,14 @@
 /Assets/*.aiff
 /Assets/*.aif
 /Assets/*.m4a
-/Assets/Sprites/*.png
-/Assets/Scenes/*
-Assets/Scenes/Roam Scene.unity
+
 
 # Now recursively whitelist folders inside Assets to keep the structure
 !/Assets/**/
-# And within those whitelisted folders, whitelist the desired file types
-!/Assets/Items/**/*.asset
-!/Assets/Moved_Resources/**/*.prefab
-!/Assets/Moved_Resources/**/*.prefab.meta
-!/Assets/_UI/**/*.prefab
-!/Assets/_UI/**/*.prefab.meta
-
-!/Assets/Materials/**/*.shadergraph
-!/Assets/Materials/**/*.shadersubgraph
-
-!/Assets/Presets/*
-
-!/Assets/Resources/Models/Placeables/**/*.fbx
-!/Assets/Resources/Models/Human/**/*.fbx
-!/Assets/Resources/Models/BaseItems/**/*.fbx
-
-
+!/Assets/**/*.md
+!/Assets/**/*.txt
 
 !/Assets/**/*.cs
-!/Assets/**/*.ink
 !/Assets/**/*.anim
 !/Assets/**/*.cs.meta
 !/Assets/**/*.wav
@@ -69,17 +50,5 @@ Assets/Scenes/Roam Scene.unity
 !/Assets/**/*.inputactions
 !/Assets/Sprites/**/*.png
 
-# ------------------------------- UI Builder ------------------------------- 
-!/Assets/UI Toolkit/*
-# Ignore everything inside Assets/SFX/Audio
-Assets/SFX/Audio/
-Assets/Sprites/
-
-# Do not ignore directories inside Assets/SFX, so we can search them for .wav files
 
 /Assets/TextMesh Pro/
-/Assets/TerrainSampleAssets/
-/Assets/_Scripts/Other/Unused
-
-# Documentation
-Packages/com.jbooth.microsplat.core/Documentation/

@@ -9,7 +9,7 @@ namespace KhiemLuong
     public class CameraRaycaster : MonoBehaviour
     {
         public Image targetImage;
-        public RawImage emblem;
+        RawImage emblem;
         CanvasGroup canvasGroup;
         TextMeshProUGUI memberName, memberPolity, memberClass, memberFaction;
         TextMeshProUGUI parentName, partnerName, childrenName;
@@ -17,6 +17,7 @@ namespace KhiemLuong
         {
             canvasGroup = targetImage.GetComponent<CanvasGroup>();
             Transform t = targetImage.transform;
+            emblem = t.Find("Emblem").GetComponent<RawImage>();
             memberName = t.Find("Name").GetComponent<TextMeshProUGUI>();
             memberPolity = t.Find("Polity").GetComponent<TextMeshProUGUI>();
             memberClass = t.Find("Class").GetComponent<TextMeshProUGUI>();
@@ -45,47 +46,59 @@ namespace KhiemLuong
 
                     PolityStruct polityStruct = polityMember.GetMemberPolity();
                     memberPolity.text = polityStruct.polityName;
-                    Debug.LogError("Class " + polityStruct.className);
+                    //Get the emblem of just the polity if available
+                    PolityStruct emblemStruct = new()
+                    {
+                        polityName = polityStruct.polityName
+                    };
+                    Texture emblemTexture = PM.GetPolityEmblem(emblemStruct);
+                    if (emblemTexture != null)
+                    {
+                        emblem.gameObject.SetActive(true);
+                        emblem.texture = emblemTexture;
+                    }
+                    else emblem.gameObject.SetActive(false);
+
                     if (polityStruct.className.Equals("None"))
-                        memberClass.enabled = false;
+                        memberClass.gameObject.SetActive(false);
                     else
                     {
-                        memberClass.enabled = true;
+                        memberClass.gameObject.SetActive(true);
                         memberClass.text = polityStruct.className;
                     }
                     if (polityStruct.factionName.Equals("None"))
-                        memberFaction.enabled = false;
+                        memberFaction.gameObject.SetActive(false);
                     else
                     {
-                        memberFaction.enabled = true;
+                        memberFaction.gameObject.SetActive(true);
                         memberFaction.text = polityStruct.factionName;
                     }
                     /* --------------------------- FamilyStruct texts --------------------------- */
 
                     FamilyStruct familyStruct = polityMember.GetMemberFamily();
                     if (familyStruct.parents.Length == 0)
-                        parentName.enabled = false;
+                        parentName.gameObject.SetActive(false);
                     else
                     {
-                        parentName.enabled = true;
+                        parentName.gameObject.SetActive(true);
                         if (familyStruct.parents.Length > 1)
                             parentName.text = "Parents: " + familyStruct.parents.Length;
                         else parentName.text = "Parent: " + familyStruct.parents[0].name;
                     }
                     if (familyStruct.partners.Length == 0)
-                        partnerName.enabled = false;
+                        partnerName.gameObject.SetActive(false);
                     else
                     {
-                        partnerName.enabled = true;
+                        partnerName.gameObject.SetActive(true);
                         if (familyStruct.partners.Length > 1)
                             partnerName.text = "Partners: " + familyStruct.partners.Length;
                         else partnerName.text = "Partner: " + familyStruct.partners[0].name;
                     }
                     if (familyStruct.children.Length == 0)
-                        childrenName.enabled = false;
+                        childrenName.gameObject.SetActive(false);
                     else
                     {
-                        childrenName.enabled = true;
+                        childrenName.gameObject.SetActive(true);
                         if (familyStruct.children.Length > 1)
                             childrenName.text = "Children: " + familyStruct.children.Length;
                         else childrenName.text = "Child: " + familyStruct.children[0].name;
@@ -108,7 +121,6 @@ namespace KhiemLuong
             Vector2 mousePosition = Input.mousePosition;
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)targetImage.canvas.transform, mousePosition, targetImage.canvas.worldCamera, out Vector2 canvasPosition);
-            // Set the target image position
             targetImage.rectTransform.anchoredPosition = canvasPosition;
         }
     }
