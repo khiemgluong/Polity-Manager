@@ -47,9 +47,21 @@ namespace KhiemLuong
                 if (agent.remainingDistance < 1.1f)
                 {
                     animator.SetLayerWeight(1, 1);
-                    PM.ModifyPolityRelation(member, currentDestination.GetComponent<PolityMember>().polityName, PolityRelation.Allies);
+                    // PM.ModifyPolityRelation(member, currentDestination.GetComponent<PolityMember>().polityName, PolityRelation.Neutral);
+                    // SearchForPolityMembers();
                     // currentDestination = null;
                 }
+            }
+            else
+            {
+                // if (agent.remainingDistance < 1.1f)
+                // {
+                //     Vector3 direction = (spawnPos - transform.position).normalized;
+                //     float singleStep = agent.angularSpeed * Time.deltaTime;
+
+                //     Quaternion targetRotation = Quaternion.LookRotation(direction);
+                //     transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, singleStep);
+                // }
             }
         }
 
@@ -88,6 +100,9 @@ namespace KhiemLuong
                         switch (relation)
                         {
                             case PolityRelation.Neutral:
+                                currentDestination = null;
+                                agent.SetDestination(spawnPos);
+                                animator.SetLayerWeight(1, 0);
                                 break;
                             case PolityRelation.Allies:
                                 break;

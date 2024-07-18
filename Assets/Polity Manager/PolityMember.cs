@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
 using UnityEngine;
 
 namespace KhiemLuong
@@ -10,15 +9,13 @@ namespace KhiemLuong
     [DisallowMultipleComponent]
     public class PolityMember : MonoBehaviour
     {
-        public string polityName;
-        public string className;
-        public string factionName;
+        //Do NOT delete these int variables; they are serialized in the PolityMemberGraph.
+        [SerializeField] int selectedPolityIndex, selectedClassIndex, selectedFactionIndex;
+        public string polityName, className, factionName;
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
-        [SerializeField] int selectedPolityIndex;
-        [SerializeField] int selectedClassIndex;
-        [SerializeField] int selectedFactionIndex;
+
         public static Action OnPolityMemberChange;
 
         void OnEnable()
@@ -33,12 +30,7 @@ namespace KhiemLuong
             OnPolityMemberChange -= OnPolityMemberChanged;
         }
 
-        void Awake()
-        {
-            parents = parents.Where(item => item != null).ToList();
-            partners = partners.Where(item => item != null).ToList();
-            children = children.Where(item => item != null).ToList();
-        }
+        void Awake() => Cleanup();
 
         void OnPolityStateChanged()
         {
@@ -48,34 +40,34 @@ namespace KhiemLuong
         {
 
         }
-        [ContextMenu("Refresh")]
-        void Refresh()
+        [ContextMenu("Cleanup")]
+        void Cleanup()
         {
             parents = parents.Where(item => item != null).ToList();
             partners = partners.Where(item => item != null).ToList();
             children = children.Where(item => item != null).ToList();
         }
 
-        [ContextMenu("Reset Relationships")]
+        [ContextMenu("Check Relationships")]
         void ResetRelationships()
         {
-            Refresh();
-            ValidateRelationships(parents, member => member.children, "parent");
-            ValidateRelationships(partners, member => member.partners, "partner");
-            ValidateRelationships(children, member => member.parents, "child");
+            Cleanup();
+            CheckRelationship(parents, member => member.children, "parent");
+            CheckRelationship(partners, member => member.partners, "partner");
+            CheckRelationship(children, member => member.parents, "child");
         }
-        void ValidateRelationships(List<PolityMember> ownList, Func<PolityMember, List<PolityMember>> getOppositeList, string relationshipType)
+        void CheckRelationship(List<PolityMember> yourFamily, Func<PolityMember, List<PolityMember>> theirFamily, string relationshipType)
         {
-            if (ownList.Any())
+            if (yourFamily.Any())
             {
                 List<PolityMember> toRemove = new List<PolityMember>();
-                foreach (PolityMember member in ownList)
-                    if (!getOppositeList(member).Contains(this))
+                foreach (PolityMember member in yourFamily)
+                    if (!theirFamily(member).Contains(this))
                         toRemove.Add(member);
 
                 foreach (PolityMember nonReciprocal in toRemove)
                 {
-                    ownList.Remove(nonReciprocal);
+                    yourFamily.Remove(nonReciprocal);
                     Debug.Log($"Removed non-reciprocal {relationshipType}: {nonReciprocal} from {this}'s {relationshipType} list.");
                 }
             }
@@ -86,7 +78,7 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         /// <summary>
         /// Changes the current PolityMember's polity, class and faction.
-        /// Sets the member's polity based on what parameters were provided, omitting factionName for example, will not set the factionName
+        /// Sets the member's polity based on what parameters were provided.
         /// </summary>
         public void ChangeMemberPolity(ref PolityStruct _struct)
         {
@@ -130,6 +122,38 @@ namespace KhiemLuong
                 Debug.LogError("No Polity Match Found");
             }
             else Debug.LogError("No Polity Name Provided");
+        }
+        /* --------------------------------- Getters -------------------------------- */
+        public PolityStruct GetMemberPolity()
+        {
+            PolityStruct polityStruct = new()
+            {
+                polityName = polityName,
+                className = className,
+                factionName = factionName,
+            }; return polityStruct;
+        }
+        public FamilyStruct GetMemberFamily()
+        {
+            FamilyStruct familyStruct = new()
+            {
+                parents = parents.ToArray(),
+                partners = partners.ToArray(),
+                children = children.ToArray(),
+            }; return familyStruct;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                                FAMILYSTRUCT                                */
+        /* -------------------------------------------------------------------------- */
+        /// <summary>
+        /// This struct declares a PolityMember's current parents, partners and children array.
+        /// </summary>
+        public struct FamilyStruct
+        {
+            public PolityMember[] parents;
+            public PolityMember[] partners;
+            public PolityMember[] children;
         }
     }
 }

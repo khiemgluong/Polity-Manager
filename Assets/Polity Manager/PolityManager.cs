@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 namespace KhiemLuong
 {
@@ -78,6 +79,42 @@ namespace KhiemLuong
             return serializedRelationships;
         }
 
+        public Texture GetPolityEmblem(PolityStruct _struct)
+        {
+            Texture emblem;
+            if (!string.IsNullOrEmpty(_struct.polityName))
+            {
+                foreach (var polity in PM.polities)
+                    if (_struct.polityName.Equals(polity.name))
+                    {
+                        emblem = polity.emblem;
+                        if (!string.IsNullOrEmpty(_struct.className))
+                        {
+                            foreach (var polityClass in polity.classes)
+                                if (_struct.className.Equals(polityClass.name))
+                                {
+                                    emblem = polityClass.emblem;
+                                    if (!string.IsNullOrEmpty(_struct.factionName))
+                                    {
+                                        foreach (var faction in polityClass.factions)
+                                            if (_struct.factionName.Equals(faction.name))
+                                                return faction.emblem;
+                                        Debug.LogError("No Faction Found");
+                                        return emblem;
+                                    }
+                                    return emblem;
+                                }
+                            Debug.LogError("No Class Found");
+                            return emblem;
+                        }
+                        return emblem;
+                    }
+                Debug.LogError("No Polity Found");
+                return null;
+            }
+            else { Debug.LogError("No Polity Name Provided"); return null; }
+        }
+
         // public PolityMember[] GetAllMembersFromPolity(PolityStruct @struct){
 
         // }
@@ -85,7 +122,7 @@ namespace KhiemLuong
         /// <summary>
         /// Sets a new relation of one polity to another by their name, to FactionRelation
         /// </summary>
-        /// <param name="theirPolityName">The string of the polity name that is selected</param>
+        /// <param name="theirPolityName">The string of the polity name that is selected, retrieved from polityName in PolityMember.</param>
         /// <param name="factionRelation">The new relation to set; Neutral, Allies or Enemies</param>
         public void ModifyPolityRelation(PolityMember polityMember, string theirPolityName, PolityRelation factionRelation)
         {
@@ -120,19 +157,18 @@ namespace KhiemLuong
         /// Represents the largest & most important political unit such as a government body or main team.
         /// </summary>
         [Serializable]
-        public class Polity
+        public class Polity : PolityBase
         {
-            public string name;
-            public Transform capital;
+            [Tooltip("A social class, government branch, corporation, or any large collective corp.")]
             public Class[] classes;
         }
         /// <summary>
         /// Could represent a social class, government branch, corporation, or any large collective corp.
         /// </summary>
         [Serializable]
-        public class Class
+        public class Class : PolityBase
         {
-            public string name;
+            [Tooltip("A temporary political unit, such as a roving bandit squad or impromptu team.")]
             public List<Faction> factions;
         }
 
@@ -141,26 +177,41 @@ namespace KhiemLuong
         /// Referenced as a List, so it's the only political unit which can be added & removed at runtime.
         /// </summary>
         [Serializable]
-        public class Faction
+        public class Faction : PolityBase
         {
-            public string name;
         }
 
-        public interface IPolityStateChangeListener
+        [SerializeField]
+        public abstract class PolityBase
         {
-            void OnPolityStateChanged();
+            [Tooltip("The name of the political unit.")]
+            public string name;
+            /// <summary>
+            /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
+            /// </summary>
+            [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
+            public Texture emblem;
         }
 
         /* -------------------------------------------------------------------------- */
         /*                                POLITYSTRUCT                                */
         /* -------------------------------------------------------------------------- */
         /// <summary>
-        /// 
+        /// This struct declares a specific polity's name, class and faction.
         /// </summary>
         public struct PolityStruct
         {
+            /// <summary>
+            /// The selected polity name.
+            /// </summary>
             public string polityName;
+            /// <summary>
+            /// The selected class within the polityName.
+            /// </summary>
             public string className;
+            /// <summary>
+            /// The selected faction within the className.
+            /// </summary>
             public string factionName;
         }
     }

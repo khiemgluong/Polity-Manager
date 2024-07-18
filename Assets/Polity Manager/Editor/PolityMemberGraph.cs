@@ -72,21 +72,13 @@ namespace KhiemLuong
             nodes.Add(nodeRect);
         }
 
-        void CreateRootNode()
-        {
-            nodes.Clear(); polityMembers.Clear(); linkedNodes.Clear(); linkedRelationType.Clear();
-            Vector2 windowCenter = new(position.width, position.height / 3);
-            Rect nodeRect = new(windowCenter.x + nodeSize.x, windowCenter.y + nodeSize.y, nodeSize.x, nodeSize.y);
-            nodes.Add(nodeRect);
-        }
         public static void ShowWindow()
         {
             var window = GetWindow<PolityMemberGraph>("Polity Manager");
-            window.minSize = new Vector2(200, 100); // Define minimum size
+            window.minSize = new Vector2(400, 200);
             var screenResolution = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
-            var windowSize = screenResolution * .2f; // Set window size to 1/3 of the screen size
-            var windowPosition = (screenResolution - windowSize) * .2f; // Center the window
-            // Set the window size and position
+            var windowSize = screenResolution * .15f;
+            var windowPosition = (screenResolution - windowSize) * .15f;
             window.position = new Rect(windowPosition.x, windowPosition.y, windowSize.x, windowSize.y);
             window.Show();
         }

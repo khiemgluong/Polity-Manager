@@ -20,19 +20,18 @@ namespace KhiemLuong
         void OnEnable()
         {
             GetPolityManagerData();
-            UpdatePolityName();
+            SerializePolityName();
         }
-
         void GetPolityManagerData()
         {
-            if (polityManager == null)
-            {
-                polityManager = FindObjectOfType<PolityManager>();
-            }
+            if (polityManager == null) polityManager = FindObjectOfType<PolityManager>();
 
             if (polityManager != null && polityManager.polities != null)
             {
-                InitializePolityNames();
+                polityNames = new string[polityManager.polities.Length];
+                for (int i = 0; i < polityManager.polities.Length; i++)
+                    polityNames[i] = polityManager.polities[i].name;
+
                 selectedPolityIndexProp = serializedObject.FindProperty("selectedPolityIndex");
                 selectedClassIndexProp = serializedObject.FindProperty("selectedClassIndex");
                 selectedFactionIndexProp = serializedObject.FindProperty("selectedFactionIndex");
@@ -98,7 +97,7 @@ namespace KhiemLuong
                     selectedPolityIndexProp.intValue = selectedPolityIndex;
                     selectedPolityIndexProp.serializedObject.ApplyModifiedProperties();
                     UpdateClassNames(selectedPolityIndex);
-                    UpdatePolityName();
+                    SerializePolityName();
                 }
             }
         }
@@ -123,7 +122,7 @@ namespace KhiemLuong
                         selectedFactionIndex = 0;
                         p.factionName = "";  // Clear any previous faction selection
                     }
-                    serializedObject.Update();
+                    SerializeClassName();
                 }
             }
             else if (classNames == null || classNames.Length <= 1) // If no classes or only "None"
@@ -148,7 +147,8 @@ namespace KhiemLuong
                 {
                     p.factionName = factionNames[selectedFactionIndex];
                     selectedFactionIndexProp.intValue = selectedFactionIndex;
-                    selectedFactionIndexProp.serializedObject.ApplyModifiedProperties(); // Apply changes immediately after modifying them
+                    selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
+                    SerializeFactionName();
                 }
             }
             else if (selectedClassIndex > 0 && (factionNames == null || factionNames.Length <= 1))
@@ -164,22 +164,10 @@ namespace KhiemLuong
         }
 
         /* ------------------------- End Selection Handlers ------------------------- */
-        void UpdatePolityName()
-        {
-            serializedObject.Update();  // Make sure to load the latest values
-            if (polityNames != null && polityNames.Length > selectedPolityIndex && selectedPolityIndex >= 0)
-            {
-                SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
-                selectedPolityName.stringValue = polityNames[selectedPolityIndex];
-                serializedObject.ApplyModifiedProperties();  // Apply the change immediately
-            }
-        }
-        void InitializePolityNames()
-        {
-            polityNames = new string[polityManager.polities.Length];
-            for (int i = 0; i < polityManager.polities.Length; i++)
-                polityNames[i] = polityManager.polities[i].name;
-        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                          Editor Dropdown Updaters                          */
+        /* -------------------------------------------------------------------------- */
         void UpdateClassNames(int polityIndex)
         {
             if (polityManager.polities[polityIndex].classes != null && polityManager.polities[polityIndex].classes.Length > 0)
@@ -239,6 +227,45 @@ namespace KhiemLuong
             }
         }
 
+        /* -------------------------------------------------------------------------- */
+        /*                         Serialize Properties Setters                       */
+        /* -------------------------------------------------------------------------- */
+        void SerializePolityName()
+        {
+            serializedObject.Update();
+            if (polityNames != null && polityNames.Length > selectedPolityIndex && selectedPolityIndex >= 0)
+            {
+                SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
+                selectedPolityName.stringValue = polityNames[selectedPolityIndex];
+                serializedObject.ApplyModifiedProperties();
+            }
+        }
+        void SerializeClassName()
+        {
+            serializedObject.Update();
+            if (classNames != null && classNames.Length > selectedClassIndex && selectedClassIndex >= 0)
+            {
+                SerializedProperty selectedClassName = serializedObject.FindProperty("className");
+                selectedClassName.stringValue = classNames[selectedClassIndex];
+                serializedObject.ApplyModifiedProperties();
+                Debug.Log("Serialized class: " + classNames[selectedClassIndex]);
+            }
+        }
+        void SerializeFactionName()
+        {
+            serializedObject.Update();
+            if (factionNames != null && factionNames.Length > selectedFactionIndex && selectedFactionIndex >= 0)
+            {
+                SerializedProperty selectedFactionName = serializedObject.FindProperty("factionName");
+                selectedFactionName.stringValue = factionNames[selectedFactionIndex];
+                serializedObject.ApplyModifiedProperties();
+                Debug.Log("Serialized faction: " + factionNames[selectedFactionIndex]);
+            }
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                              Inspector Drawers                             */
+        /* -------------------------------------------------------------------------- */
         bool InteractiveFoldout(bool foldout, string content)
         {
             Rect rect = GUILayoutUtility.GetRect(16f, 22f, new GUIStyle { fontStyle = FontStyle.Bold });
@@ -252,7 +279,6 @@ namespace KhiemLuong
         }
         void DrawReadOnlyPolityMembersList(SerializedProperty listProperty)
         {
-            // Ensure the property is not null and is a list
             if (listProperty != null && listProperty.isArray)
             {
                 if (listProperty.arraySize > 0)
@@ -261,7 +287,6 @@ namespace KhiemLuong
                     if (listProperty.isExpanded)
                     {
                         EditorGUI.indentLevel++;
-
                         // Temporarily disable GUI to make the properties read-only
                         GUI.enabled = false;
                         for (int i = 0; i < listProperty.arraySize; i++)
