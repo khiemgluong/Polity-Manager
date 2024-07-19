@@ -145,6 +145,9 @@ namespace KhiemLuong
                     selectedFactionIndexProp.intValue = selectedFactionIndex;
                     selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
                     p.factionName = "";  // Clear any previous faction selection
+
+                    UpdateFactionNames(selectedPolityIndex, selectedClassIndex);
+
                     SerializeClassName();
                     SerializeFactionName();
                 }
@@ -260,7 +263,7 @@ namespace KhiemLuong
                 SerializedProperty selectedClassName = serializedObject.FindProperty("className");
                 selectedClassName.stringValue = classNames[selectedClassIndex];
                 serializedObject.ApplyModifiedProperties();
-                // Debug.Log("Serialized class: " + classNames[selectedClassIndex]);
+                Debug.Log("Serialized class: " + classNames[selectedClassIndex]);
             }
         }
         void SerializeFactionName()
@@ -271,7 +274,7 @@ namespace KhiemLuong
                 SerializedProperty selectedFactionName = serializedObject.FindProperty("factionName");
                 selectedFactionName.stringValue = factionNames[selectedFactionIndex];
                 serializedObject.ApplyModifiedProperties();
-                // Debug.Log("Serialized faction: " + factionNames[selectedFactionIndex]);
+                Debug.Log("Serialized faction: " + factionNames[selectedFactionIndex]);
             }
         }
 

@@ -30,7 +30,7 @@ namespace KhiemLuong
 
         void OnDisable() => OnFactionChange -= OnFactionChanged;
 
-        void Awake() => Cleanup();
+        void Awake() => CleanupFamily();
 
         void Update()
         {
@@ -71,21 +71,53 @@ namespace KhiemLuong
                 selectedFactionIndex = 0; factionName = "";
             }
         }
-        [ContextMenu("Cleanup")]
-        void Cleanup()
+
+        [ContextMenu("Check Family")]
+        void ResetRelationships()
+        {
+            CleanupFamily();
+            CheckRelationship(parents, member => member.children, "parent");
+            CheckRelationship(partners, member => member.partners, "partner");
+            CheckRelationship(children, member => member.parents, "child");
+        }
+
+        [ContextMenu("Delete Family")]
+        void DeleteFamily()
+        {
+            foreach (PolityMember partner in partners)
+                foreach (PolityMember partnerPartner in partner.partners)
+                    if (partnerPartner == this)
+                    {
+                        partner.partners.Remove(partnerPartner);
+                        partners.Remove(partnerPartner);
+                        break;
+                    }
+            partners.Clear();
+            foreach (PolityMember parent in parents)
+                foreach (PolityMember parentChild in parent.children)
+                    if (parentChild == this)
+                    {
+                        parent.children.Remove(parentChild);
+                        parents.Remove(parentChild);
+                        break;
+                    }
+            parents.Clear();
+            foreach (PolityMember child in children)
+                foreach (PolityMember childParent in child.parents)
+                    if (childParent == this)
+                    {
+                        child.parents.Remove(childParent);
+                        children.Remove(childParent);
+                        break;
+                    }
+            children.Clear();
+        }
+        [ContextMenu("Cleanup Family")]
+        void CleanupFamily()
         {
             parents = parents.Where(item => item != null).ToList();
             partners = partners.Where(item => item != null).ToList();
             children = children.Where(item => item != null).ToList();
-        }
-
-        [ContextMenu("Check Relationships")]
-        void ResetRelationships()
-        {
-            Cleanup();
-            CheckRelationship(parents, member => member.children, "parent");
-            CheckRelationship(partners, member => member.partners, "partner");
-            CheckRelationship(children, member => member.parents, "child");
         }
         void CheckRelationship(List<PolityMember> yourFamily, Func<PolityMember, List<PolityMember>> theirFamily, string relationshipType)
         {

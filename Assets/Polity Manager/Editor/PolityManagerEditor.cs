@@ -70,7 +70,7 @@ namespace KhiemLuong
                             default: return;
                         }
                         manager.relationships[j, i] = manager.relationships[i, j];//Set reciprocal
-                        OnRelationChange?.Invoke();
+                        if (Application.isPlaying) OnRelationChange?.Invoke();
                         manager.SerializePolityMatrix();
                     }
 
@@ -82,7 +82,7 @@ namespace KhiemLuong
             }
             EditorGUILayout.EndScrollView();
             GUILayout.EndVertical();
-            
+
             if (!Application.isPlaying) if (GUILayout.Button("Polity Member Graph"))
                     EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
 
