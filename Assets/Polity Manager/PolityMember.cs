@@ -9,14 +9,28 @@ namespace KhiemLuong
     [DisallowMultipleComponent]
     public class PolityMember : MonoBehaviour
     {
-        //Do NOT delete these int variables; they are serialized in the PolityMemberGraph.
         [SerializeField] int selectedPolityIndex, selectedClassIndex, selectedFactionIndex;
+        [SerializeField] bool isPolityLeader, isClassLeader, isFactionLeader;
         public string polityName, className, factionName;
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
 
+        /* --------------------------- ENCAPSULATED FIELDS -------------------------- */
+        public int SelectedPolityIndex
+        { get => selectedPolityIndex; private set => selectedPolityIndex = value; }
+        public int SelectedClassIndex
+        { get => selectedClassIndex; private set => selectedClassIndex = value; }
+        public int SelectedFactionIndex
+        { get => selectedFactionIndex; private set => selectedFactionIndex = value; }
+
+        public bool IsPolityLeader { get => isPolityLeader; private set => isPolityLeader = value; }
+        public bool IsClassLeader { get => isClassLeader; private set => isClassLeader = value; }
+        public bool IsFactionLeader { get => isFactionLeader; private set => isFactionLeader = value; }
+
+        /* ---------------------------------- EVENT --------------------------------- */
         public static Action OnPolityMemberChange;
+
 
         void OnEnable()
         {
@@ -129,8 +143,11 @@ namespace KhiemLuong
             PolityStruct polityStruct = new()
             {
                 polityName = polityName,
+                isPolityLeader = isPolityLeader,
                 className = className,
+                isClassLeader = isPolityLeader,
                 factionName = factionName,
+                isFactionLeader = isFactionLeader
             }; return polityStruct;
         }
         public FamilyStruct GetMemberFamily()

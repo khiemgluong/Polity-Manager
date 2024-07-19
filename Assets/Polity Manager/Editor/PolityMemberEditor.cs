@@ -1,9 +1,8 @@
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using static KhiemLuong.PolityManager;
 namespace KhiemLuong
 {
+    using static KhiemLuong.PolityManager;
     [CustomEditor(typeof(PolityMember))]
     public class PolityMemberEditor : Editor
     {
@@ -15,7 +14,9 @@ namespace KhiemLuong
         SerializedProperty selectedPolityIndexProp;
         SerializedProperty selectedClassIndexProp;
         SerializedProperty selectedFactionIndexProp;
+
         bool isPolityManagerFound = false;
+        bool isPolityLeader, isClassLeader, isFactionLeader;
 
         void OnEnable() => GetPolityManagerData();
         void GetPolityManagerData()
@@ -34,6 +35,7 @@ namespace KhiemLuong
 
                 serializedObject.Update();
 
+                /* --------------------------- Get Polity Indices --------------------------- */
                 selectedPolityIndex = selectedPolityIndexProp.intValue;
                 selectedClassIndex = selectedClassIndexProp.intValue;
                 selectedFactionIndex = selectedFactionIndexProp.intValue;
@@ -45,16 +47,23 @@ namespace KhiemLuong
 
                 serializedObject.ApplyModifiedProperties();
                 isPolityManagerFound = true;
+                PolityMember p = (PolityMember)target;
+                if (p == polityManager.polities[selectedPolityIndex].leader)
+                    isPolityLeader = true;
+                else isPolityLeader = false;
+                if (selectedPolityIndex > 0 && selectedClassIndex > 0)
+                    if (p == polityManager.polities[selectedPolityIndex].classes[selectedClassIndex - 1].leader)
+                        isClassLeader = true;
+                    else isClassLeader = false;
+                if (selectedPolityIndex > 0 && selectedClassIndex > 0 && selectedFactionIndex > 0)
+                    if (p == polityManager.polities[selectedPolityIndex].classes[selectedClassIndex - 1].factions[selectedFactionIndex - 1].leader)
+                        isFactionLeader = true;
+                    else isFactionLeader = false;
             }
         }
         public override void OnInspectorGUI()
         {
             PolityMember p = (PolityMember)target;
-
-            SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.PropertyField(selectedPolityName, true);
-            EditorGUI.EndDisabledGroup();
 
             serializedObject.Update();
 
@@ -86,7 +95,12 @@ namespace KhiemLuong
             if (isPolityManagerFound && polityNames != null)
             {
                 EditorGUI.BeginChangeCheck();
-                selectedPolityIndex = EditorGUILayout.Popup("Polity", selectedPolityIndex, polityNames);
+                if (isPolityLeader)
+                    selectedPolityIndex = EditorGUILayout.Popup("Polity\t|Leader|", selectedPolityIndex, polityNames);
+                else selectedPolityIndex = EditorGUILayout.Popup("Polity", selectedPolityIndex, polityNames);
+                SerializedProperty isPolityLeaderProp = serializedObject.FindProperty("isPolityLeader");
+                isPolityLeaderProp.boolValue = isPolityLeader;
+                isPolityLeaderProp.serializedObject.ApplyModifiedProperties();
                 if (EditorGUI.EndChangeCheck())
                 {
                     p.polityName = polityNames[selectedPolityIndex];
@@ -101,11 +115,10 @@ namespace KhiemLuong
                     selectedFactionIndex = 0;
                     selectedFactionIndexProp.intValue = selectedFactionIndex;
                     selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
-
-                    SerializePolityName();
-                    SerializeClassName();
-                    SerializeFactionName();
                 }
+                SerializePolityName();
+                SerializeClassName();
+                SerializeFactionName();
             }
         }
 
@@ -115,7 +128,12 @@ namespace KhiemLuong
             if (classNames != null && classNames.Length > 1)
             {
                 EditorGUI.BeginChangeCheck();
-                selectedClassIndex = EditorGUILayout.Popup("Class", selectedClassIndex, classNames);
+                if (isClassLeader)
+                    selectedClassIndex = EditorGUILayout.Popup("Class\t|Leader|", selectedClassIndex, classNames);
+                else selectedClassIndex = EditorGUILayout.Popup("Class", selectedClassIndex, classNames);
+                SerializedProperty isClassLeaderProp = serializedObject.FindProperty("isClassLeader");
+                isClassLeaderProp.boolValue = isClassLeader;
+                isClassLeaderProp.serializedObject.ApplyModifiedProperties();
                 if (EditorGUI.EndChangeCheck())
                 {
                     p.className = classNames[selectedClassIndex];
@@ -143,11 +161,16 @@ namespace KhiemLuong
         }
         void HandleFactionSelection(PolityMember p)
         {
-            // Check if there is more than one option (more than just "None")
             if (selectedClassIndex > 0 && factionNames != null && factionNames.Length > 1)
             {
                 EditorGUI.BeginChangeCheck();
-                selectedFactionIndex = EditorGUILayout.Popup("Faction", selectedFactionIndex, factionNames);
+                if (isFactionLeader)
+                    selectedFactionIndex = EditorGUILayout.Popup("Faction\t|Leader|", selectedFactionIndex, factionNames);
+                else selectedFactionIndex = EditorGUILayout.Popup("Faction", selectedFactionIndex, factionNames);
+                SerializedProperty isFactionLeaderProp = serializedObject.FindProperty("isFactionLeader");
+                isFactionLeaderProp.boolValue = isFactionLeader;
+                isFactionLeaderProp.serializedObject.ApplyModifiedProperties();
+
                 if (EditorGUI.EndChangeCheck())
                 {
                     p.factionName = factionNames[selectedFactionIndex];
@@ -161,7 +184,6 @@ namespace KhiemLuong
                 p.factionName = "";  // Clear any previous faction selection
                 if (factionNames != null && factionNames.Length == 1)
                 {
-                    // Automatically set faction name to "None" if that's the only option
                     p.factionName = factionNames[0];
                     selectedFactionIndex = 0; // Reset index to "None"
                 }
@@ -183,7 +205,6 @@ namespace KhiemLuong
                 // Fill the rest of the array with class names
                 for (int i = 0; i < polityManager.polities[polityIndex].classes.Length; i++)
                     classNames[i + 1] = polityManager.polities[polityIndex].classes[i].name;
-
                 // Only reset the selected index if it's out of bounds now
                 if (selectedClassIndex >= classNames.Length || selectedClassIndex < 0)
                     selectedClassIndex = 0; // Reset to "None" if the previous selection is invalid
@@ -200,19 +221,22 @@ namespace KhiemLuong
         void UpdateFactionNames(int polityIndex, int classIndex)
         {
             // Adjust classIndex to account for the "None" entry in the dropdown
+            factionNames = new string[0];
             int adjustedClassIndex = classIndex - 1;
             // Check if the specified polity and class indexes are valid and that factions exist
             if (polityIndex >= 0 && polityIndex < polityManager.polities.Length &&
-                adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex].classes.Length)
+                adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex - 1].classes.Length)
             {
                 Class _class = polityManager.polities[polityIndex].classes[adjustedClassIndex];
                 if (_class.factions != null && _class.factions.Count > 0)
                 {
+                    Debug.LogError("Factions count " + _class.factions.Count);
                     factionNames = new string[_class.factions.Count + 1];
                     factionNames[0] = "None"; // First entry is empty to represent no faction selected
                     for (int i = 0; i < _class.factions.Count; i++)
                         factionNames[i + 1] = _class.factions[i].name;
-                    selectedFactionIndex = 0;
+                    if (selectedFactionIndex >= factionNames.Length || selectedFactionIndex < 0)
+                        selectedFactionIndex = 0;
                 }
                 else
                 {
@@ -220,12 +244,6 @@ namespace KhiemLuong
                     factionNames[0] = "None";
                     selectedFactionIndex = 0;
                 }
-            }
-            else
-            {
-                factionNames = new string[1];
-                factionNames[0] = "Invalid selection";
-                selectedFactionIndex = 0;
             }
         }
 
@@ -240,6 +258,7 @@ namespace KhiemLuong
                 SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
                 selectedPolityName.stringValue = polityNames[selectedPolityIndex];
                 serializedObject.ApplyModifiedProperties();
+                Debug.Log("Serialized polity: " + selectedPolityName.stringValue);
             }
         }
         void SerializeClassName()
@@ -282,7 +301,6 @@ namespace KhiemLuong
         void DrawReadOnlyPolityMembersList(SerializedProperty listProperty)
         {
             if (listProperty != null && listProperty.isArray)
-            {
                 if (listProperty.arraySize > 0)
                 {
                     listProperty.isExpanded = InteractiveFoldout(listProperty.isExpanded, listProperty.displayName);
@@ -300,7 +318,6 @@ namespace KhiemLuong
                         EditorGUI.indentLevel--;
                     }
                 }
-            }
         }
     }
 }

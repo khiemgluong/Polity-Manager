@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using UnityEngine.UI;
+using UnityEditor;
 
 namespace KhiemLuong
 {
@@ -188,13 +188,19 @@ namespace KhiemLuong
         [SerializeField]
         public abstract class PolityBase
         {
-            [Tooltip("The name of the political unit.")]
+            [Tooltip("The name of the polity unit.")]
             public string name;
             /// <summary>
             /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
             /// </summary>
             [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
             public Texture2D emblem;
+            /// <summary>
+            /// The leader of this specific unit, e.g. an emperor, chief or manager.
+            /// </summary>
+            [Tooltip("The leader of this unit, e.g. an emperor, chief or manager.")]
+            [PrefabOnly]
+            public PolityMember leader;
         }
 
         /* -------------------------------------------------------------------------- */
@@ -209,14 +215,44 @@ namespace KhiemLuong
             /// The selected polity name.
             /// </summary>
             public string polityName;
+            public bool isPolityLeader;
             /// <summary>
             /// The selected class within the polityName.
             /// </summary>
             public string className;
+            public bool isClassLeader;
             /// <summary>
             /// The selected faction within the className.
             /// </summary>
             public string factionName;
+            public bool isFactionLeader;
+
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Field)]
+    class PrefabOnlyAttribute : PropertyAttribute { }
+
+    [CustomPropertyDrawer(typeof(PrefabOnlyAttribute))]
+    class PrefabOnlyDrawer : PropertyDrawer
+    {
+        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        {
+            EditorGUI.BeginProperty(position, label, property);
+            // Only allow prefab objects to be assigned
+            if (property.objectReferenceValue != null)
+            {
+                var path = AssetDatabase.GetAssetPath(property.objectReferenceValue.GetInstanceID());
+                bool isPrefab = !string.IsNullOrEmpty(path) && path.Contains(".prefab");
+                if (!isPrefab)
+                {
+                    property.objectReferenceValue = null;
+                    EditorGUI.HelpBox(position, "Only prefabs are allowed.", MessageType.Error);
+                }
+            }
+
+            EditorGUI.PropertyField(position, property, label);
+            EditorGUI.EndProperty();
         }
     }
 }
