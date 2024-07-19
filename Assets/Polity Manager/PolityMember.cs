@@ -59,7 +59,17 @@ namespace KhiemLuong
 
         void OnFactionChanged()
         {
-            Debug.LogError("Faction changed");
+            bool isCurrentFactionStillAvailable = false;
+            foreach (Faction faction in PM.polities[selectedPolityIndex].classes[selectedClassIndex - 1].factions)
+            {
+                if (faction.name.Equals(factionName))
+                { isCurrentFactionStillAvailable = true; break; }
+            }
+            if (!isCurrentFactionStillAvailable)
+            {
+                Debug.Log(factionName + " is removed from factions list");
+                selectedFactionIndex = 0; factionName = "";
+            }
         }
         [ContextMenu("Cleanup")]
         void Cleanup()

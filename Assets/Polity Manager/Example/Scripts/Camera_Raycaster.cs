@@ -9,10 +9,12 @@ namespace KhiemLuong
     public class CameraRaycaster : MonoBehaviour
     {
         public Image targetImage;
+        public RectTransform panel;
         RawImage emblem;
         CanvasGroup canvasGroup;
         TextMeshProUGUI memberName, memberPolity, memberClass, memberFaction;
         TextMeshProUGUI parentName, partnerName, childrenName;
+        bool isPaused;
         void Start()
         {
             canvasGroup = targetImage.GetComponent<CanvasGroup>();
@@ -26,6 +28,8 @@ namespace KhiemLuong
             parentName = t.Find("Parents").GetComponent<TextMeshProUGUI>();
             partnerName = t.Find("Partners").GetComponent<TextMeshProUGUI>();
             childrenName = t.Find("Children").GetComponent<TextMeshProUGUI>();
+
+            panel.gameObject.SetActive(false);
         }
         void Update()
         {
@@ -33,6 +37,21 @@ namespace KhiemLuong
             {
                 Debug.LogError("Target Image not assigned in the inspector");
                 return;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                isPaused = !isPaused;
+                if (isPaused)
+                {
+                    panel.gameObject.SetActive(true);
+                    Time.timeScale = 0;
+                }
+                else
+                {
+                    panel.gameObject.SetActive(false);
+                    Time.timeScale = 1;
+                }
             }
 
             float scroll = Input.GetAxis("Mouse ScrollWheel");
@@ -66,15 +85,17 @@ namespace KhiemLuong
                         emblem.texture = emblemTexture;
                     }
                     else emblem.gameObject.SetActive(false);
-
-                    if (polityStruct.className.Equals("None"))
+                    if (polityStruct.className.Equals("\t"))
+                    {
                         memberClass.gameObject.SetActive(false);
+                        memberFaction.gameObject.SetActive(false);
+                    }
                     else
                     {
                         memberClass.gameObject.SetActive(true);
                         memberClass.text = polityStruct.className;
                     }
-                    if (polityStruct.factionName.Equals("None"))
+                    if (polityStruct.factionName.Equals("\t"))
                         memberFaction.gameObject.SetActive(false);
                     else
                     {

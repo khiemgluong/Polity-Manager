@@ -38,7 +38,7 @@ The PolityManager singleton contains a _Polity Relation Matrix_, a grid table th
 
 A Polity<sup>1</sup> also contains a serialized array of Class<sup>2</sup> objects, and each Class object has a List of Faction<sup>3</sup> objects. These serve to departmentalize the various branches or groups of your polity into smaller political units.
 
-To connect these polities to a prefab GameObject, the `PolityMember.cs` component is attached to that GameObject which will now assign it to a created polity, along with their class and faction (note that the class and faction will create a "None" selection, so avoid making a class or faction named "None").
+To connect these polities to a prefab GameObject, the `PolityMember.cs` component is attached to that GameObject which will now assign it to a created polity, along with their class and faction (note that the class and faction will create an empty selection first, in case the PolityMember does not want to be affiliated with a class or faction).
 > The Shogunate polity has a Daimyo class, and in that class contains a faction called the Nissan Clan.
 ![PolityMember](PolityMember.png)
 

@@ -126,7 +126,6 @@ namespace KhiemLuong
 
         void HandleClassSelection(PolityMember p)
         {
-            // Check if there is more than one option (more than just "None")
             if (classNames != null && classNames.Length > 1)
             {
                 EditorGUI.BeginChangeCheck();
@@ -141,7 +140,7 @@ namespace KhiemLuong
                     p.className = classNames[selectedClassIndex];
                     selectedClassIndexProp.intValue = selectedClassIndex;
                     selectedClassIndexProp.serializedObject.ApplyModifiedProperties();
-                    factionNames = new string[] { "None" };
+                    factionNames = new string[] { "\t" };
                     selectedFactionIndex = 0;
                     selectedFactionIndexProp.intValue = selectedFactionIndex;
                     selectedFactionIndexProp.serializedObject.ApplyModifiedProperties();
@@ -150,7 +149,7 @@ namespace KhiemLuong
                     SerializeFactionName();
                 }
             }
-            else if (classNames == null || classNames.Length <= 1) // If no classes or only "None"
+            else if (classNames == null || classNames.Length <= 1)
             {
                 p.className = "";  // Clear any previous class selection
                 if (classNames != null && classNames.Length == 1)
@@ -182,7 +181,7 @@ namespace KhiemLuong
                 if (factionNames != null && factionNames.Length == 1)
                 {
                     p.factionName = factionNames[0];
-                    selectedFactionIndex = 0; // Reset index to "None"
+                    selectedFactionIndex = 0; // Reset index to "-NONE-"
                 }
             }
         }
@@ -195,28 +194,27 @@ namespace KhiemLuong
         {
             if (polityManager.polities[polityIndex].classes != null && polityManager.polities[polityIndex].classes.Length > 0)
             {
-                // Create a new array with an extra slot for "None"
+                // Create a new array with an extra slot for "-NONE-"
                 classNames = new string[polityManager.polities[polityIndex].classes.Length + 1];
-                classNames[0] = "None"; // First entry is empty
+                classNames[0] = "\t"; // First entry is empty
                 // Fill the rest of the array with class names
                 for (int i = 0; i < polityManager.polities[polityIndex].classes.Length; i++)
                     classNames[i + 1] = polityManager.polities[polityIndex].classes[i].name;
                 // Only reset the selected index if it's out of bounds now
                 if (selectedClassIndex >= classNames.Length || selectedClassIndex < 0)
-                    selectedClassIndex = 0; // Reset to "None" if the previous selection is invalid
+                    selectedClassIndex = 0; // Reset to "-NONE-" if the previous selection is invalid
             }
             else
             {
                 // Handle the case where there are no classes
                 classNames = new string[1];
-                classNames[0] = "None";
+                classNames[0] = "\t";
                 selectedClassIndex = 0;
             }
         }
 
         void UpdateFactionNames(int polityIndex, int classIndex)
         {
-            // Adjust classIndex to account for the "None" entry in the dropdown
             int adjustedClassIndex = classIndex - 1;
             if (polityIndex >= 0 && polityIndex < polityManager.polities.Length &&
                 adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex].classes.Length)
@@ -225,7 +223,7 @@ namespace KhiemLuong
                 if (_class.factions != null && _class.factions.Count > 0)
                 {
                     factionNames = new string[_class.factions.Count + 1];
-                    factionNames[0] = "None"; // First entry is empty to represent no faction selected
+                    factionNames[0] = "\t"; // First entry is empty to represent no faction selected
                     for (int i = 0; i < _class.factions.Count; i++)
                         factionNames[i + 1] = _class.factions[i].name;
                     if (selectedFactionIndex >= factionNames.Length || selectedFactionIndex < 0)
@@ -234,7 +232,7 @@ namespace KhiemLuong
                 else
                 {
                     factionNames = new string[1]; // Just the empty entry if no factions are present
-                    factionNames[0] = "None";
+                    factionNames[0] = "\t";
                     selectedFactionIndex = 0;
                 }
             }
