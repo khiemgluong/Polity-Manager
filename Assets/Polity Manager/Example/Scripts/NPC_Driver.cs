@@ -30,7 +30,7 @@ namespace KhiemLuong
 
             spawnPos = transform.position;
         }
-        void OnEnable() => OnPolityRelationChange += OnPolityStateChanged;
+        void OnEnable() => OnRelationChange += OnPolityStateChanged;
         // Update is called once per frame
         void Update()
         {
@@ -66,7 +66,7 @@ namespace KhiemLuong
         {
             if (allyEnemyTarget != null)
             {
-                PolityRelation relation = PM.ComparePolityRelation(member, allyEnemyTarget);
+                PolityRelation relation = PM.GetPolityRelation(member, allyEnemyTarget);
                 Debug.Log("Ally: " + relation + " " + gameObject.name + " to " + allyEnemyTarget.name, gameObject);
                 switch (relation)
                 {
@@ -79,7 +79,7 @@ namespace KhiemLuong
             }
             else if (enemyTarget != null)
             {
-                PolityRelation relation = PM.ComparePolityRelation(member, enemyTarget);
+                PolityRelation relation = PM.GetPolityRelation(member, enemyTarget);
                 if (relation == PolityRelation.Neutral)
                 {
                     Debug.Log("Enemy Neutral");
@@ -100,7 +100,7 @@ namespace KhiemLuong
                 if (hitCollider.TryGetComponent<PolityMember>(out var polityMember))
                     if (polityMember != member)
                     {
-                        PolityRelation relation = PM.ComparePolityRelation(member, polityMember);
+                        PolityRelation relation = PM.GetPolityRelation(member, polityMember);
                         switch (relation)
                         {
                             case PolityRelation.Allies:

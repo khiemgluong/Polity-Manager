@@ -70,7 +70,7 @@ namespace KhiemLuong
                             default: return;
                         }
                         manager.relationships[j, i] = manager.relationships[i, j];//Set reciprocal
-                        OnPolityRelationChange?.Invoke();
+                        OnRelationChange?.Invoke();
                         manager.SerializePolityMatrix();
                     }
 

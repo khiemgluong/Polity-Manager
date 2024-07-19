@@ -96,8 +96,6 @@ namespace KhiemLuong
                     nodes.Add(new Rect(nodes[0].x, nodes[0].y - 100, nodeSize.x, nodeSize.y));
                 else Debug.LogWarning("You must assign a root PolityMember first");
             }
-            if (GUILayout.Button("Reset Node", GUILayout.ExpandWidth(false)))
-                Debug.Log("Reset Node doesn't do anything right now.");
             EditorGUILayout.EndHorizontal();
             GUILayout.EndArea();
             /* ------------------------------- SIDEBAR END ------------------------------ */
@@ -202,7 +200,6 @@ namespace KhiemLuong
                     if (!CheckForDuplicateNode(id))
                     {
                         SetRootNodeRelationTypes(id);
-
                         EditorGUILayout.BeginHorizontal();
                         if (linkedRelationType.ContainsKey(id))
                         {
@@ -245,11 +242,6 @@ namespace KhiemLuong
                             if (polityMembers[id].parents.Contains(polityMembers[0]) && polityMembers[id].parents.Count < 2)
                                 if (GUILayout.Button("Parent")) childNodeId = id;
                     }
-                }
-                else
-                {
-                    // polityMembers.RemoveAt(id);
-                    // Debug.LogError("NULLED");
                 }
             }
             GUI.DragWindow();

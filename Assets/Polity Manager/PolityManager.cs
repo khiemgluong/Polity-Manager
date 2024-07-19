@@ -23,7 +23,7 @@ namespace KhiemLuong
         [SerializeField]
         [Tooltip("Set to true to persist this Singleton across scenes")] bool dontDestroyOnLoad;
         /* --------------------------------- EVENTS --------------------------------- */
-        public static Action OnPolityRelationChange;
+        public static Action OnRelationChange;
         public static Action OnFactionChange;
         void Awake()
         {
@@ -54,23 +54,23 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
-        public void DeserializePolityMatrix(string _serializedRelationships)
+        public PolityRelation[,] DeserializePolityMatrix(string _serializedRelationships)
         {
             if (!string.IsNullOrEmpty(_serializedRelationships))
                 relationships = JsonConvert.DeserializeObject<PolityRelation[,]>(_serializedRelationships);
+            return relationships;
         }
-        public void DeserializePolityMatrix() => DeserializePolityMatrix(serializedRelationships);
+        public PolityRelation[,] DeserializePolityMatrix() => DeserializePolityMatrix(serializedRelationships);
 
         /* --------------------------------- Getters -------------------------------- */
         /// <summary>
         /// Gets the current PolityRelation from one PolityMember to another.
         /// </summary>
         /// <returns>The PolityRelation enum as Neutral, Allies, or Enemies.</returns>
-        public PolityRelation ComparePolityRelation(PolityMember polityMember, PolityMember otherPolityMember) =>
-               ComparePolityRelation(polityMember, otherPolityMember.polityName);
-        public PolityRelation ComparePolityRelation(PolityMember polityMember, string theirPolityName)
+        public PolityRelation GetPolityRelation(PolityMember polityMember, PolityMember theirPolityMember) =>
+               GetPolityRelation(polityMember.polityName, theirPolityMember.polityName);
+        public PolityRelation GetPolityRelation(string yourPolityName, string theirPolityName)
         {
-            string yourPolityName = polityMember.polityName;
             int yourIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
             if (yourIndex == -1 || theirIndex == -1)
@@ -95,42 +95,69 @@ namespace KhiemLuong
         public Texture2D GetPolityEmblem(PolityStruct _struct)
         {
             Texture2D emblem;
-            if (!string.IsNullOrEmpty(_struct.polityName))
-            {
-                foreach (var polity in polities)
-                    if (_struct.polityName.Equals(polity.name))
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return null; }
+            foreach (var polity in polities)
+                if (_struct.polityName.Equals(polity.name))
+                {
+                    emblem = polity.emblem;
+                    if (!string.IsNullOrEmpty(_struct.className))
                     {
-                        emblem = polity.emblem;
-                        if (!string.IsNullOrEmpty(_struct.className))
-                        {
-                            foreach (var polityClass in polity.classes)
-                                if (_struct.className.Equals(polityClass.name))
+                        foreach (var polityClass in polity.classes)
+                            if (_struct.className.Equals(polityClass.name))
+                            {
+                                emblem = polityClass.emblem;
+                                if (!string.IsNullOrEmpty(_struct.factionName))
                                 {
-                                    emblem = polityClass.emblem;
-                                    if (!string.IsNullOrEmpty(_struct.factionName))
-                                    {
-                                        foreach (var faction in polityClass.factions)
-                                            if (_struct.factionName.Equals(faction.name))
-                                                return faction.emblem;
-                                        Debug.LogError("No Faction Found");
-                                        return emblem;
-                                    }
+                                    foreach (var faction in polityClass.factions)
+                                        if (_struct.factionName.Equals(faction.name))
+                                            return faction.emblem;
+                                    Debug.LogError("No Faction Found");
                                     return emblem;
                                 }
-                            Debug.LogError("No Class Found");
-                            return emblem;
-                        }
+                                return emblem;
+                            }
+                        Debug.LogError("No Class Found");
                         return emblem;
                     }
-                Debug.LogError("No Polity Found");
-                return null;
-            }
-            else { Debug.LogError("No Polity Name Provided"); return null; }
+                    return emblem;
+                }
+            Debug.LogError("No Polity Found"); return null;
         }
 
-        // public PolityMember[] GetAllMembersFromPolity(PolityStruct _struct){
+        public PolityMember GetPolityLeader(PolityStruct _struct)
+        {
+            PolityMember leader;
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return null; }
+            foreach (var polity in polities)
+                if (_struct.polityName.Equals(polity.name))
+                {
+                    leader = polity.leader;
+                    if (!string.IsNullOrEmpty(_struct.className))
+                    {
+                        foreach (var polityClass in polity.classes)
+                            if (_struct.className.Equals(polityClass.name))
+                            {
+                                leader = polityClass.leader;
+                                if (!string.IsNullOrEmpty(_struct.factionName))
+                                {
+                                    foreach (var faction in polityClass.factions)
+                                        if (_struct.factionName.Equals(faction.name))
+                                            return faction.leader;
+                                    Debug.LogError("No Faction Found");
+                                    return leader;
+                                }
+                                return leader;
+                            }
+                        Debug.LogError("No Class Found");
+                        return leader;
+                    }
+                    return leader;
+                }
+            Debug.LogError("No Polity Found"); return null;
+        }
 
-        // }
         /* --------------------------------- Setters -------------------------------- */
         /// <summary>
         /// Sets a new relation of one polity to another by their name, to FactionRelation
@@ -150,6 +177,7 @@ namespace KhiemLuong
             relationships[memberIndex, theirIndex] = factionRelation;
             relationships[theirIndex, memberIndex] = factionRelation;
             SerializePolityMatrix();
+            OnRelationChange?.Invoke();
             Debug.Log($"Modified relation between {polityMember.polityName} & {theirPolityName} to {factionRelation}");
         }
 
@@ -191,6 +219,9 @@ namespace KhiemLuong
         }
         public void AddFactionToPolity(PolityStruct _struct) => AddFactionToPolity(_struct, null, null);
 
+        /// <summary>
+        /// Remove a faction of a polity, if the PolityStruct polityName, className and factionName all match.
+        /// </summary>
         public void RemoveFactionFromPolity(PolityStruct _struct)
         {
             if (string.IsNullOrEmpty(_struct.polityName))

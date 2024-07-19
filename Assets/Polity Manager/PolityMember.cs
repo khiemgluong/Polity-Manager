@@ -108,8 +108,7 @@ namespace KhiemLuong
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
         /// <summary>
-        /// Changes the current PolityMember's polity, class and faction.
-        /// Sets the member's polity based on what parameters were provided.
+        ///Changes the current PolityMember's polity, class and faction based on what parameters were provided.
         /// </summary>
         public void ChangeMemberPolity(ref PolityStruct _struct)
         {
@@ -151,6 +150,38 @@ namespace KhiemLuong
                 }
             Debug.LogError("No Polity Match Found");
         }
+
+        /// <summary>
+        /// Sets this PolityMember to be the leader of a polity, or its class and faction
+        /// </summary>
+        public void SetAsPolityLeader(PolityStruct _struct)
+        {
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return; }
+            foreach (var polity in PM.polities)
+                if (_struct.polityName.Equals(polity.name))
+                {
+                    polity.leader = this;
+                    if (!string.IsNullOrEmpty(_struct.className))
+                    {
+                        foreach (var polityClass in polity.classes)
+                            if (_struct.className.Equals(polityClass.name))
+                            {
+                                polityClass.leader = this;
+                                if (!string.IsNullOrEmpty(_struct.factionName))
+                                {
+                                    foreach (var faction in polityClass.factions)
+                                        if (_struct.factionName.Equals(faction.name))
+                                        { faction.leader = this; break; }
+                                    Debug.LogError("No Faction Found");
+                                }
+                            }
+                        Debug.LogError("No Class Found");
+                    }
+                }
+            Debug.LogError("No Polity Found");
+        }
+
         /* --------------------------------- Getters -------------------------------- */
         public PolityStruct GetMemberPolity()
         {
