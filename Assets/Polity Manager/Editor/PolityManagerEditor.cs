@@ -15,8 +15,13 @@ namespace KhiemLuong
             PolityManager manager = (PolityManager)target;
             EditorGUI.BeginChangeCheck();
 
+            EditorGUI.BeginDisabledGroup(Application.isPlaying);
             SerializedProperty polities = serializedObject.FindProperty("polities");
             EditorGUILayout.PropertyField(polities, true);
+            EditorGUI.EndDisabledGroup();
+
+            SerializedProperty dontDestroyOnLoad = serializedObject.FindProperty("dontDestroyOnLoad");
+            EditorGUILayout.PropertyField(dontDestroyOnLoad, new GUIContent("Don't Destroy on Load?"), true);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -77,16 +82,12 @@ namespace KhiemLuong
             }
             EditorGUILayout.EndScrollView();
             GUILayout.EndVertical();
+            
+            if (!Application.isPlaying) if (GUILayout.Button("Polity Member Graph"))
+                    EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
 
             // Save changes
             if (GUI.changed) EditorUtility.SetDirty(manager);
-
-            if (GUILayout.Button("Polity Member Graph"))
-            {
-                var window = EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
-                // window.SetPolityManager(manager);
-                // window.SetPolityObjects(manager.polities);
-            }
         }
 
         void RotateText(Rect rect, string text, float angle)

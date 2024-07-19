@@ -9,8 +9,8 @@ namespace KhiemLuong
     public class PolityManager : MonoBehaviour
     {
         public static PolityManager PM { get; private set; }
+        [Tooltip("The largest & most important political unit such as a government body or main team.")]
         public Polity[] polities;
-        public static Action OnPolityRelationChange;
         [Serializable]
         public enum PolityRelation
         {
@@ -20,12 +20,20 @@ namespace KhiemLuong
         }
         public PolityRelation[,] relationships;
         [SerializeField] string serializedRelationships;
-
+        [SerializeField]
+        [Tooltip("Set to true to persist this Singleton across scenes")] bool dontDestroyOnLoad;
+        /* --------------------------------- EVENTS --------------------------------- */
+        public static Action OnPolityRelationChange;
+        public static Action OnFactionChange;
         void Awake()
         {
-            if (PM != null && PM != this)
-                Destroy(gameObject);
-            else PM = this;
+            if (PM != null && PM != this) Destroy(gameObject);
+            else
+            {
+                PM = this;
+                if (dontDestroyOnLoad)
+                    DontDestroyOnLoad(gameObject);
+            }
             DeserializePolityMatrix();
         }
 
@@ -89,7 +97,7 @@ namespace KhiemLuong
             Texture2D emblem;
             if (!string.IsNullOrEmpty(_struct.polityName))
             {
-                foreach (var polity in PM.polities)
+                foreach (var polity in polities)
                     if (_struct.polityName.Equals(polity.name))
                     {
                         emblem = polity.emblem;
@@ -145,14 +153,77 @@ namespace KhiemLuong
             Debug.Log($"Modified relation between {polityMember.polityName} & {theirPolityName} to {factionRelation}");
         }
 
-
-        public void AddFactionToPolity(ref PolityStruct @struct)
+        /// <summary>
+        /// Adds a faction to a polity, requiring a matching polityName and className to work.
+        /// </summary>
+        public Faction AddFactionToPolity(PolityStruct _struct, Texture2D emblem, PolityMember leader)
         {
+            Faction newFaction = new(_struct.factionName, emblem, leader);
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return null; }
 
+            foreach (var polity in polities)
+                if (_struct.polityName.Equals(polity.name))
+                    if (!string.IsNullOrEmpty(_struct.className))
+                    {
+                        foreach (var polityClass in polity.classes)
+                            if (_struct.className.Equals(polityClass.name))
+                                if (!string.IsNullOrEmpty(_struct.factionName))
+                                {
+                                    bool factionExists = false;
+                                    foreach (var faction in polityClass.factions)
+                                        if (_struct.factionName.Equals(faction.name))
+                                        {
+                                            Debug.LogWarning("Faction already exists");
+                                            factionExists = true; break;
+                                        }
+                                    if (!factionExists)
+                                    {
+                                        polityClass.factions.Add(newFaction);
+                                        OnFactionChange?.Invoke();
+                                        return newFaction;
+                                    }
+                                    Debug.LogError("No Faction Found");
+                                }
+                        Debug.LogError("No Class Found");
+                    }
+            return null;
         }
-        public void RemoveFactionFromPolity(ref PolityStruct @struct)
-        {
+        public void AddFactionToPolity(PolityStruct _struct) => AddFactionToPolity(_struct, null, null);
 
+        public void RemoveFactionFromPolity(PolityStruct _struct)
+        {
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return; }
+
+            foreach (var polity in polities)
+                if (_struct.polityName.Equals(polity.name))
+                {
+                    if (string.IsNullOrEmpty(_struct.className))
+                    { Debug.LogError("No Class Name Provided"); return; }
+
+                    foreach (var polityClass in polity.classes)
+                        if (_struct.className.Equals(polityClass.name))
+                        {
+                            if (string.IsNullOrEmpty(_struct.factionName))
+                            {
+                                Debug.LogError("No Faction Name Provided");
+                                return;
+                            }
+
+                            for (int i = 0; i < polityClass.factions.Count; i++)
+                                if (_struct.factionName.Equals(polityClass.factions[i].name))
+                                {
+                                    polityClass.factions.RemoveAt(i);
+                                    Debug.Log("Faction found and removed");
+                                    OnFactionChange?.Invoke();
+                                    return;
+                                }
+                            return;
+                        }
+                    Debug.LogError("No Class Found");
+                    return;
+                }
         }
 
         /* -------------------------------------------------------------------------- */
@@ -164,25 +235,31 @@ namespace KhiemLuong
         [Serializable]
         public class Polity : PolityBase
         {
-            [Tooltip("A social class, government branch, corporation, or any large collective corp.")]
+            [Tooltip("A social class, government branch, organization, or any large collective corp.")]
             public Class[] classes;
         }
         /// <summary>
-        /// Could represent a social class, government branch, corporation, or any large collective corp.
+        /// Could represent a social class, government branch, organization, or any large collective corp.
         /// </summary>
         [Serializable]
         public class Class : PolityBase
         {
-            [Tooltip("A temporary political unit, such as a roving bandit squad or impromptu team.")]
+            [Tooltip("A small temporary political unit, such as a bandit squad or impromptu team.")]
             public List<Faction> factions;
         }
 
         /// <summary>
-        /// Could represent a temporary political unit, such as a roving bandit squad or impromptu team.
+        /// Could represent a temporary political unit, which can be added and removed at runtime.
         /// </summary>
         [Serializable]
         public class Faction : PolityBase
         {
+            public Faction(string _name, Texture2D _emblem, PolityMember _leader)
+            {
+                name = _name;
+                emblem = _emblem;
+                leader = _leader;
+            }
         }
 
         [SerializeField]

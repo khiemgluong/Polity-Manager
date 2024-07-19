@@ -34,6 +34,7 @@
 # Now recursively whitelist folders inside Assets to keep the structure
 !/Assets/**/
 !/Assets/**/*.txt
+!/Assets/**/*.md
 
 !/Assets/**/*.cs
 !/Assets/**/*.anim

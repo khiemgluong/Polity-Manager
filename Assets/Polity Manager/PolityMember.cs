@@ -10,8 +10,8 @@ namespace KhiemLuong
     public class PolityMember : MonoBehaviour
     {
         [SerializeField] int selectedPolityIndex, selectedClassIndex, selectedFactionIndex;
-        [SerializeField] bool isPolityLeader, isClassLeader, isFactionLeader;
         public string polityName, className, factionName;
+        [SerializeField] bool isPolityLeader, isClassLeader, isFactionLeader;
         public List<PolityMember> parents;
         public List<PolityMember> partners;
         public List<PolityMember> children;
@@ -24,35 +24,42 @@ namespace KhiemLuong
         public int SelectedFactionIndex
         { get => selectedFactionIndex; private set => selectedFactionIndex = value; }
 
-        public bool IsPolityLeader { get => isPolityLeader; private set => isPolityLeader = value; }
-        public bool IsClassLeader { get => isClassLeader; private set => isClassLeader = value; }
-        public bool IsFactionLeader { get => isFactionLeader; private set => isFactionLeader = value; }
+        /* --------------------------------- EVENTS --------------------------------- */
 
-        /* ---------------------------------- EVENT --------------------------------- */
-        public static Action OnPolityMemberChange;
+        void OnEnable() => OnFactionChange += OnFactionChanged;
 
-
-        void OnEnable()
-        {
-            OnPolityRelationChange += OnPolityStateChanged;
-            OnPolityMemberChange += OnPolityMemberChanged;
-        }
-
-        void OnDisable()
-        {
-            OnPolityRelationChange -= OnPolityStateChanged;
-            OnPolityMemberChange -= OnPolityMemberChanged;
-        }
+        void OnDisable() => OnFactionChange -= OnFactionChanged;
 
         void Awake() => Cleanup();
 
-        void OnPolityStateChanged()
+        void Update()
         {
+            if (Input.GetKeyDown(KeyCode.H))
+            {
+                PolityStruct polityStruct = new()
+                {
+                    polityName = polityName,
+                    className = className,
+                    factionName = "Test"
+                };
+                PM.AddFactionToPolity(polityStruct);
+            }
+            if (Input.GetKeyDown(KeyCode.K))
+            {
+                PolityStruct polityStruct = new()
+                {
+                    polityName = polityName,
+                    className = className,
+                    factionName = factionName
+                };
+                PM.RemoveFactionFromPolity(polityStruct);
+            }
         }
 
-        void OnPolityMemberChanged()
-        {
 
+        void OnFactionChanged()
+        {
+            Debug.LogError("Faction changed");
         }
         [ContextMenu("Cleanup")]
         void Cleanup()
@@ -96,46 +103,43 @@ namespace KhiemLuong
         /// </summary>
         public void ChangeMemberPolity(ref PolityStruct _struct)
         {
-            // Check if the polity name is provided and is not null or empty
-            if (!string.IsNullOrEmpty(_struct.polityName))
-            {
-                foreach (var polity in PM.polities)
-                    if (_struct.polityName.Equals(polity.name))
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return; }
+            foreach (var polity in PM.polities)
+                if (_struct.polityName.Equals(polity.name))
+                {
+                    polityName = polity.name;
+                    selectedPolityIndex = Array.IndexOf(PM.polities, polity);
+                    if (!string.IsNullOrEmpty(_struct.className))
                     {
-                        polityName = polity.name;
-                        selectedPolityIndex = Array.IndexOf(PM.polities, polity);
-                        if (!string.IsNullOrEmpty(_struct.className))
-                        {
-                            foreach (var polityClass in polity.classes)
-                                if (_struct.className.Equals(polityClass.name))
-                                {
-                                    className = _struct.className;
-                                    selectedClassIndex = Array.IndexOf(polity.classes, polityClass) + 1;
+                        foreach (var polityClass in polity.classes)
+                            if (_struct.className.Equals(polityClass.name))
+                            {
+                                className = _struct.className;
+                                selectedClassIndex = Array.IndexOf(polity.classes, polityClass) + 1;
 
-                                    if (!string.IsNullOrEmpty(_struct.factionName))
-                                    {
-                                        foreach (var faction in polityClass.factions)
-                                            if (_struct.factionName.Equals(faction.name))
-                                            {
-                                                factionName = _struct.factionName;
-                                                selectedFactionIndex = polityClass.factions.IndexOf(faction) + 1;
-                                                return; // All matches found, end the method
-                                            }
-                                        Debug.LogError("No Faction Match Found");
-                                        selectedFactionIndex = 0;
-                                        return;
-                                    }
+                                if (!string.IsNullOrEmpty(_struct.factionName))
+                                {
+                                    foreach (var faction in polityClass.factions)
+                                        if (_struct.factionName.Equals(faction.name))
+                                        {
+                                            factionName = _struct.factionName;
+                                            selectedFactionIndex = polityClass.factions.IndexOf(faction) + 1;
+                                            return; // All matches found, end the method
+                                        }
+                                    Debug.LogError("No Faction Match Found");
+                                    selectedFactionIndex = 0;
                                     return;
                                 }
-                            Debug.LogError("No Class Match Found");
-                            selectedClassIndex = 0;
-                            return;
-                        }
+                                return;
+                            }
+                        Debug.LogError("No Class Match Found");
+                        selectedClassIndex = 0;
                         return;
                     }
-                Debug.LogError("No Polity Match Found");
-            }
-            else Debug.LogError("No Polity Name Provided");
+                    return;
+                }
+            Debug.LogError("No Polity Match Found");
         }
         /* --------------------------------- Getters -------------------------------- */
         public PolityStruct GetMemberPolity()
@@ -145,7 +149,7 @@ namespace KhiemLuong
                 polityName = polityName,
                 isPolityLeader = isPolityLeader,
                 className = className,
-                isClassLeader = isPolityLeader,
+                isClassLeader = isClassLeader,
                 factionName = factionName,
                 isFactionLeader = isFactionLeader
             }; return polityStruct;

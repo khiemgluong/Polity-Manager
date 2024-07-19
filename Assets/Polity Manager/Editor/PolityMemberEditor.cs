@@ -168,7 +168,6 @@ namespace KhiemLuong
                 SerializedProperty isFactionLeaderProp = serializedObject.FindProperty("isFactionLeader");
                 isFactionLeaderProp.boolValue = isFactionLeader;
                 isFactionLeaderProp.serializedObject.ApplyModifiedProperties();
-
                 if (EditorGUI.EndChangeCheck())
                 {
                     p.factionName = factionNames[selectedFactionIndex];
