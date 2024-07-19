@@ -14,7 +14,6 @@
 
 !.gitignore
 # Ignore the entire Terrains folder
-
 # MemoryCaptures can get excessive in size.
 /[Mm]emoryCaptures/
 
@@ -34,7 +33,6 @@
 
 # Now recursively whitelist folders inside Assets to keep the structure
 !/Assets/**/
-!/Assets/**/*.md
 !/Assets/**/*.txt
 
 !/Assets/**/*.cs
@@ -47,8 +45,6 @@
 !/Assets/**/*.aiff
 !/Assets/**/*.aif
 !/Assets/**/*.m4a
-!/Assets/**/*.inputactions
-!/Assets/Sprites/**/*.png
-
 
 /Assets/TextMesh Pro/
+

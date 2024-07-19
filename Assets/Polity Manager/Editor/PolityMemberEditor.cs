@@ -63,8 +63,10 @@ namespace KhiemLuong
         }
         public override void OnInspectorGUI()
         {
-            PolityMember p = (PolityMember)target;
+            if (polityManager == null)
+            { GUILayout.Label("No PolityManager found in the Scene.", EditorStyles.boldLabel); return; }
 
+            PolityMember p = (PolityMember)target;
             serializedObject.Update();
 
             selectedPolityIndex = selectedPolityIndexProp.intValue;
@@ -152,11 +154,7 @@ namespace KhiemLuong
             {
                 p.className = "";  // Clear any previous class selection
                 if (classNames != null && classNames.Length == 1)
-                {
-                    // Automatically set class name to "None" if that's the only option
-                    p.className = classNames[0];
-                    selectedClassIndex = 0; // Reset index to "None"
-                }
+                { p.className = classNames[0]; selectedClassIndex = 0; }
             }
         }
         void HandleFactionSelection(PolityMember p)
@@ -189,7 +187,6 @@ namespace KhiemLuong
                 }
             }
         }
-
         /* ------------------------- End Selection Handlers ------------------------- */
 
         /* -------------------------------------------------------------------------- */
@@ -221,16 +218,13 @@ namespace KhiemLuong
         void UpdateFactionNames(int polityIndex, int classIndex)
         {
             // Adjust classIndex to account for the "None" entry in the dropdown
-            factionNames = new string[0];
             int adjustedClassIndex = classIndex - 1;
-            // Check if the specified polity and class indexes are valid and that factions exist
             if (polityIndex >= 0 && polityIndex < polityManager.polities.Length &&
-                adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex - 1].classes.Length)
+                adjustedClassIndex >= 0 && adjustedClassIndex < polityManager.polities[polityIndex].classes.Length)
             {
                 Class _class = polityManager.polities[polityIndex].classes[adjustedClassIndex];
                 if (_class.factions != null && _class.factions.Count > 0)
                 {
-                    Debug.LogError("Factions count " + _class.factions.Count);
                     factionNames = new string[_class.factions.Count + 1];
                     factionNames[0] = "None"; // First entry is empty to represent no faction selected
                     for (int i = 0; i < _class.factions.Count; i++)
@@ -258,7 +252,7 @@ namespace KhiemLuong
                 SerializedProperty selectedPolityName = serializedObject.FindProperty("polityName");
                 selectedPolityName.stringValue = polityNames[selectedPolityIndex];
                 serializedObject.ApplyModifiedProperties();
-                Debug.Log("Serialized polity: " + selectedPolityName.stringValue);
+                // Debug.Log("Serialized polity: " + selectedPolityName.stringValue);
             }
         }
         void SerializeClassName()
@@ -269,7 +263,7 @@ namespace KhiemLuong
                 SerializedProperty selectedClassName = serializedObject.FindProperty("className");
                 selectedClassName.stringValue = classNames[selectedClassIndex];
                 serializedObject.ApplyModifiedProperties();
-                Debug.Log("Serialized class: " + classNames[selectedClassIndex]);
+                // Debug.Log("Serialized class: " + classNames[selectedClassIndex]);
             }
         }
         void SerializeFactionName()
@@ -280,7 +274,7 @@ namespace KhiemLuong
                 SerializedProperty selectedFactionName = serializedObject.FindProperty("factionName");
                 selectedFactionName.stringValue = factionNames[selectedFactionIndex];
                 serializedObject.ApplyModifiedProperties();
-                Debug.Log("Serialized faction: " + factionNames[selectedFactionIndex]);
+                // Debug.Log("Serialized faction: " + factionNames[selectedFactionIndex]);
             }
         }
 
