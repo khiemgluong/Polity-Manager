@@ -37,6 +37,13 @@ namespace KhiemLuong
 
                 /* --------------------------- Get Polity Indices --------------------------- */
                 selectedPolityIndex = selectedPolityIndexProp.intValue;
+                if (selectedPolityIndex > polityManager.polities.Length - 1)
+                {
+                    selectedPolityIndexProp.intValue = 0;
+                    selectedPolityIndex = 0;
+                    selectedPolityIndexProp.serializedObject.ApplyModifiedProperties();
+                }
+
                 selectedClassIndex = selectedClassIndexProp.intValue;
                 selectedFactionIndex = selectedFactionIndexProp.intValue;
 
