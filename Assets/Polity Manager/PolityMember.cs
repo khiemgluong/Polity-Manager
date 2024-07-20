@@ -25,6 +25,7 @@ namespace KhiemLuong
         { get => selectedFactionIndex; private set => selectedFactionIndex = value; }
 
         /* --------------------------------- EVENTS --------------------------------- */
+        public static Action OnLeaderChange;
 
         void OnEnable() => OnFactionChange += OnFactionChanged;
 
@@ -84,32 +85,15 @@ namespace KhiemLuong
         [ContextMenu("Delete Family")]
         void DeleteFamily()
         {
-            foreach (PolityMember partner in partners)
-                foreach (PolityMember partnerPartner in partner.partners)
-                    if (partnerPartner == this)
-                    {
-                        partner.partners.Remove(partnerPartner);
-                        partners.Remove(partnerPartner);
-                        break;
-                    }
+            // Remove this member from all partners' lists and vice versa
+            foreach (PolityMember partner in new List<PolityMember>(partners))
+                partner.partners.Remove(this);
             partners.Clear();
-            foreach (PolityMember parent in parents)
-                foreach (PolityMember parentChild in parent.children)
-                    if (parentChild == this)
-                    {
-                        parent.children.Remove(parentChild);
-                        parents.Remove(parentChild);
-                        break;
-                    }
+            foreach (PolityMember parent in new List<PolityMember>(parents))
+                parent.children.Remove(this);
             parents.Clear();
-            foreach (PolityMember child in children)
-                foreach (PolityMember childParent in child.parents)
-                    if (childParent == this)
-                    {
-                        child.parents.Remove(childParent);
-                        children.Remove(childParent);
-                        break;
-                    }
+            foreach (PolityMember child in new List<PolityMember>(children))
+                child.parents.Remove(this);
             children.Clear();
         }
         [ContextMenu("Cleanup Family")]
@@ -180,38 +164,44 @@ namespace KhiemLuong
                     }
                     return;
                 }
-            Debug.LogError("No Polity Match Found");
         }
 
         /// <summary>
         /// Sets this PolityMember to be the leader of a polity, or its class and faction
         /// </summary>
-        public void SetAsPolityLeader(PolityStruct _struct)
+        public void SetAsPolityLeader(PolityStruct _struct) =>
+            SetPolityLeader(this, _struct);
+
+        public void SetPolityLeader(PolityMember newLeader, PolityStruct _struct)
         {
             if (string.IsNullOrEmpty(_struct.polityName))
             { Debug.LogError("No Polity Name Provided"); return; }
             foreach (var polity in PM.polities)
                 if (_struct.polityName.Equals(polity.name))
                 {
-                    polity.leader = this;
+                    polity.leader = newLeader;
                     if (!string.IsNullOrEmpty(_struct.className))
                     {
                         foreach (var polityClass in polity.classes)
                             if (_struct.className.Equals(polityClass.name))
                             {
-                                polityClass.leader = this;
+                                polityClass.leader = newLeader;
                                 if (!string.IsNullOrEmpty(_struct.factionName))
                                 {
                                     foreach (var faction in polityClass.factions)
                                         if (_struct.factionName.Equals(faction.name))
-                                        { faction.leader = this; break; }
+                                        {
+                                            faction.leader = newLeader;
+                                            OnLeaderChange?.Invoke(); break;
+                                        }
                                     Debug.LogError("No Faction Found");
                                 }
+                                else OnLeaderChange?.Invoke();
                             }
                         Debug.LogError("No Class Found");
                     }
+                    else { Debug.Log("No Class Given"); OnLeaderChange?.Invoke(); }
                 }
-            Debug.LogError("No Polity Found");
         }
 
         /* --------------------------------- Getters -------------------------------- */

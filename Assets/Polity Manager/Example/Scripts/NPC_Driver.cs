@@ -95,7 +95,6 @@ namespace KhiemLuong
         void SearchForPolityMembers()
         {
             Collider[] hitColliders = Physics.OverlapSphere(transform.position, detectionRadius);
-
             foreach (var hitCollider in hitColliders)
                 if (hitCollider.TryGetComponent<PolityMember>(out var polityMember))
                     if (polityMember != member)

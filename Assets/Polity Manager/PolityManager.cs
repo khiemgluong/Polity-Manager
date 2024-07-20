@@ -9,7 +9,7 @@ namespace KhiemLuong
     public class PolityManager : MonoBehaviour
     {
         public static PolityManager PM { get; private set; }
-        [Tooltip("The largest & most important political unit such as a government body or main team.")]
+        [Tooltip("The largest, most important political unit such as a government body or main team.")]
         public Polity[] polities;
         [Serializable]
         public enum PolityRelation
@@ -25,6 +25,7 @@ namespace KhiemLuong
         /* --------------------------------- EVENTS --------------------------------- */
         public static Action OnRelationChange;
         public static Action OnFactionChange;
+
         void Awake()
         {
             if (PM != null && PM != this) Destroy(gameObject);
@@ -36,9 +37,6 @@ namespace KhiemLuong
             }
             DeserializePolityMatrix();
         }
-
-        [ContextMenu("Load Polity Matrix")]
-        void LoadSerializedPolityMatrix() => DeserializePolityMatrix();
 
         [ContextMenu("Reset Polity Matrix")]
         void ResetPolityMatrix()
@@ -54,6 +52,8 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
+
+        /* --------------------------------- GETTERS -------------------------------- */
         public PolityRelation[,] DeserializePolityMatrix(string _serializedRelationships)
         {
             if (!string.IsNullOrEmpty(_serializedRelationships))
@@ -61,8 +61,19 @@ namespace KhiemLuong
             return relationships;
         }
         public PolityRelation[,] DeserializePolityMatrix() => DeserializePolityMatrix(serializedRelationships);
+        /// <summary>
+        /// Deserializes a string represent the Polity[] array, it does not overwrite the actual polities variable
+        /// </summary>
+        /// <param name="serializedPolities">The string serialized from SerializePolities()</param>
+        /// <returns>The Polity[] object and its children, except Texture2D emblem and PolityMember leader.</returns>
+        public Polity[] DeserializePolities(string serializedPolities)
+        {
+            Polity[] _polities = null; if (!string.IsNullOrEmpty(serializedPolities))
+                _polities = JsonConvert.DeserializeObject<Polity[]>(serializedPolities);
+            return _polities;
+        }
+        public Polity[] DeserializePolities() => DeserializePolities(SerializePolities());
 
-        /* --------------------------------- Getters -------------------------------- */
         /// <summary>
         /// Gets the current PolityRelation from one PolityMember to another.
         /// </summary>
@@ -74,23 +85,15 @@ namespace KhiemLuong
             int yourIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
             if (yourIndex == -1 || theirIndex == -1)
-            {
-                Debug.LogError("One or both polity names not found.");
-                return default;
-            }
+            { Debug.LogError("One or both polity names not found."); return default; }
 
             PolityRelation relation = relationships[yourIndex, theirIndex];
             Debug.Log($"Relationship between {yourPolityName} & {theirPolityName} is {relation} at {yourIndex},{theirIndex}");
             return relation;
         }
-        public string SerializePolityMatrix()
-        {
-            serializedRelationships = JsonConvert.SerializeObject(relationships);
-            return serializedRelationships;
-        }
 
         /// <summary>
-        /// Gets the emblem texture of the polity, or its class and faction if the properties for those have been provided.
+        /// Gets the emblem texture of the polity, or its class and faction if those properties have been provided.
         /// </summary>
         public Texture2D GetPolityEmblem(PolityStruct _struct)
         {
@@ -158,28 +161,42 @@ namespace KhiemLuong
             Debug.LogError("No Polity Found"); return null;
         }
 
-        /* --------------------------------- Setters -------------------------------- */
+        /* --------------------------------- SETTERS -------------------------------- */
+        public string SerializePolityMatrix()
+        {
+            serializedRelationships = JsonConvert.SerializeObject(relationships);
+            return serializedRelationships;
+        }
+        public string SerializePolities()
+        {
+            string serializedPolities = JsonConvert.SerializeObject(polities);
+            Debug.Log("serialized polities: " + serializedPolities);
+            return serializedPolities;
+        }
         /// <summary>
         /// Sets a new relation of one polity to another by their name, to FactionRelation
         /// </summary>
         /// <param name="theirPolityName">The string of the polity name that is selected, retrieved from polityName in PolityMember.</param>
-        /// <param name="factionRelation">The new relation to set; Neutral, Allies or Enemies</param>
-        public void ModifyPolityRelation(PolityMember polityMember, string theirPolityName, PolityRelation factionRelation)
+        /// <param name="newRelation">The new relation to set; Neutral, Allies or Enemies</param>
+        public void ModifyPolityRelation(string thisPolityName, string theirPolityName, PolityRelation newRelation)
         {
-            string yourPolityName = polityMember.polityName;
-            int memberIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
+            // string yourPolityName = polityMember.polityName;
+            int thisIndex = Array.FindIndex(polities, p => p.name == thisPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
-            if (memberIndex == -1 || theirIndex == -1)
+            if (thisIndex == -1 || theirIndex == -1)
             {
                 Debug.LogError("One or both polity names not found.");
                 return;
             }
-            relationships[memberIndex, theirIndex] = factionRelation;
-            relationships[theirIndex, memberIndex] = factionRelation;
+            relationships[thisIndex, theirIndex] = newRelation;
+            relationships[theirIndex, thisIndex] = newRelation;
             SerializePolityMatrix();
             OnRelationChange?.Invoke();
-            Debug.Log($"Modified relation between {polityMember.polityName} & {theirPolityName} to {factionRelation}");
+            Debug.Log($"Set relation between {thisPolityName} & {theirPolityName} to {newRelation}");
         }
+
+        public void ModifyPolityRelation(PolityMember polityMember, string theirPolityName, PolityRelation newRelation)
+            => ModifyPolityRelation(polityMember.polityName, theirPolityName, newRelation);
 
         /// <summary>
         /// Adds a faction to a polity, requiring a matching polityName and className to work.
@@ -237,23 +254,17 @@ namespace KhiemLuong
                         if (_struct.className.Equals(polityClass.name))
                         {
                             if (string.IsNullOrEmpty(_struct.factionName))
-                            {
-                                Debug.LogError("No Faction Name Provided");
-                                return;
-                            }
-
+                            { Debug.LogError("No Faction Name Provided"); return; }
                             for (int i = 0; i < polityClass.factions.Count; i++)
                                 if (_struct.factionName.Equals(polityClass.factions[i].name))
                                 {
                                     polityClass.factions.RemoveAt(i);
                                     Debug.Log("Faction found and removed");
-                                    OnFactionChange?.Invoke();
-                                    return;
+                                    OnFactionChange?.Invoke(); return;
                                 }
                             return;
                         }
-                    Debug.LogError("No Class Found");
-                    return;
+                    Debug.LogError("No Class Found"); return;
                 }
         }
 
@@ -302,12 +313,13 @@ namespace KhiemLuong
             /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
             /// </summary>
             [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
+            [JsonIgnore]
             public Texture2D emblem;
             /// <summary>
             /// The leader of this specific unit, e.g. an emperor, chief or manager.
             /// </summary>
             [Tooltip("The leader of this unit, e.g. an emperor, chief or manager.")]
-            [PrefabOnly]
+            [PrefabOnly, JsonIgnore]
             public PolityMember leader;
         }
 

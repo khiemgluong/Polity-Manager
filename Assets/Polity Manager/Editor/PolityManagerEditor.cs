@@ -10,6 +10,9 @@ namespace KhiemLuong
     {
         Vector2 scrollPosition;
         const float gridSize = 20, headerWidth = 120;
+
+        void OnEnable()
+        { PolityManager manager = (PolityManager)target; manager.DeserializePolityMatrix(); }
         public override void OnInspectorGUI()
         {
             PolityManager manager = (PolityManager)target;
@@ -21,7 +24,7 @@ namespace KhiemLuong
             EditorGUI.EndDisabledGroup();
 
             SerializedProperty dontDestroyOnLoad = serializedObject.FindProperty("dontDestroyOnLoad");
-            EditorGUILayout.PropertyField(dontDestroyOnLoad, new GUIContent("Don't Destroy on Load?"), true);
+            EditorGUILayout.PropertyField(dontDestroyOnLoad, true);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -35,6 +38,9 @@ namespace KhiemLuong
             GUILayout.BeginVertical();
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
 
+            GUIStyle centeredStyle = new(GUI.skin.label)
+            { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            EditorGUILayout.LabelField("Polity Relation Matrix", centeredStyle);
             // Create the matrix GUI with headers
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space(-47);

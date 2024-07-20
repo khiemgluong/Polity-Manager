@@ -1,55 +1,48 @@
-### Polity Manager - Manage Factions, Teams & Families
+# Polity Manager - Manage Factions, Teams & Families
 
-### i-comit LLC
-
-<!-- 1. [Description](#description)
-   - [Use Cases](#use-cases)
-2. [Requirements](#requirements)
-3. [Quickstart](#quickstart)
-4. [Public APIs](#public-apis)
-5. [Advanced](#advanced)
-   - [Families](#families)
-   - [Leaders](#leaders)
-6. [Credits](#credits)
-7. [Glossary](#glossary) -->
-
-- [Description](#description)
-  - [Use Cases](#use-cases)
-- [Requirements](#requirements)
-- [Quickstart](#quickstart)
-- [Public APIs](#public-apis)
-  - [PolityManager.cs](#politymanagercs)
-    - [ContextMenu("Load Polity Matrix")](#contextmenuload-polity-matrix)
-    - [ContextMenu("Reset Polity Matrix")](#contextmenureset-polity-matrix)
-    - [ModifyPolityRelation()](#modifypolityrelation)
-    - [GetPolityRelation()](#getpolityrelation)
-    - [GetPolityEmblem()](#getpolityemblem)
-    - [GetPolityLeader()](#getpolityleader)
-    - [AddFactionToPolity()](#addfactiontopolity)
-    - [RemoveFactionFromPolity()](#removefactionfrompolity)
-    - [SerializePolityMatrix()](#serializepolitymatrix)
-    - [DeserializePolityMatrix()](#deserializepolitymatrix)
-  - [PolityMember.cs](#politymembercs)
-    - [ContextMenu("Check Family")](#contextmenucheck-family)
-    - [ContextMenu("Delete Family")](#contextmenudelete-family)
-    - [ContextMenu("Cleanup Family")](#contextmenucleanup-family)
-    - [ChangeMemberPolity()](#changememberpolity)
-    - [SetAsPolityLeader()](#setaspolityleader)
-    - [GetMemberPolity()](#getmemberpolity)
-    - [GetMemberFamily()](#getmemberfamily)
-  - [Events](#events)
-    - [OnRelationChange](#onrelationchange)
-    - [OnFactionChange](#onfactionchange)
-  - [Structs](#structs)
-    - [PolityStruct](#politystruct)
-    - [FamilyStruct](#familystruct)
-- [Extra Settings](#extra-settings)
-  - [Families](#families)
-    - [Root Node](#root-node)
-    - [Limitations](#limitations)
-  - [Leaders](#leaders)
-- [Credits](#credits)
-- [Glossary](#glossary)
+- [Polity Manager - Manage Factions, Teams \& Families](#polity-manager---manage-factions-teams--families)
+  - [Description](#description)
+    - [Use Cases](#use-cases)
+  - [Requirements](#requirements)
+  - [Quickstart](#quickstart)
+    - [Video Tutorial](#video-tutorial)
+    - [Demo Tutorial](#demo-tutorial)
+  - [Public APIs](#public-apis)
+    - [PolityManager.cs](#politymanagercs)
+      - [ContextMenu("Reset Polity Matrix")](#contextmenureset-polity-matrix)
+      - [ModifyPolityRelation()](#modifypolityrelation)
+      - [GetPolityRelation()](#getpolityrelation)
+      - [GetPolityEmblem()](#getpolityemblem)
+      - [GetPolityLeader()](#getpolityleader)
+      - [AddFactionToPolity()](#addfactiontopolity)
+      - [RemoveFactionFromPolity()](#removefactionfrompolity)
+      - [SerializePolities()](#serializepolities)
+      - [DeserializePolities()](#deserializepolities)
+      - [SerializePolityMatrix()](#serializepolitymatrix)
+      - [DeserializePolityMatrix()](#deserializepolitymatrix)
+    - [PolityMember.cs](#politymembercs)
+      - [ContextMenu("Check Family")](#contextmenucheck-family)
+      - [ContextMenu("Delete Family")](#contextmenudelete-family)
+      - [ContextMenu("Cleanup Family")](#contextmenucleanup-family)
+      - [ChangeMemberPolity()](#changememberpolity)
+      - [SetAsPolityLeader()](#setaspolityleader)
+      - [SetPolityLeader()](#setpolityleader)
+      - [GetMemberPolity()](#getmemberpolity)
+      - [GetMemberFamily()](#getmemberfamily)
+    - [Events](#events)
+      - [OnRelationChange](#onrelationchange)
+      - [OnLeaderChange](#onleaderchange)
+      - [OnFactionChange](#onfactionchange)
+    - [Structs](#structs)
+      - [PolityStruct](#politystruct)
+      - [FamilyStruct](#familystruct)
+  - [Extra Settings](#extra-settings)
+    - [Families](#families)
+      - [Root Node](#root-node)
+      - [Limitations](#limitations)
+    - [Leaders](#leaders)
+  - [Credits](#credits)
+  - [Glossary](#glossary)
 
 ## Description
 
@@ -80,6 +73,10 @@ Requires the [`Newtonsoft.JSON`](https://www.newtonsoft.com/json) package to wor
 
 ## Quickstart
 
+### [Video Tutorial](https://www.youtube.com/watch?v=f2wm8g-1v8A)
+
+### Demo Tutorial
+
 1. Play the Example Demo.unity Scene
 2. Click on the PolityManager GameObject in the hierarchy
 3. Click on the grid cells in the _Polity Relation Matrix_ to change RelationType<sup>4</sup> between polities.
@@ -98,10 +95,6 @@ All classes in this package is under the `KhiemLuong` namespace.
 
 All public methods can be called from this PolityManager Singleton, referenced as `PM`, for example PM.ModifyPolityRelation();
 
-#### ContextMenu("Load Polity Matrix")
-
-Deserialize the last serialized `PolityRelation[,]` matrix
-
 #### ContextMenu("Reset Polity Matrix")
 
 Reset every relation to `Neutral` and Serialize it.
@@ -109,7 +102,7 @@ Reset every relation to `Neutral` and Serialize it.
 #### ModifyPolityRelation()
 
 Sets a new relationship status between two polities based on their names, adjusting their relation to either Neutral, Allies, or Enemies.
-If the polities matched, the OnPolityRelationChange event will be invoked to notify all subscribers of the relation change.
+If the polities matched, the `OnRelationChange` event will be invoked to notify all subscribers of the relation change.
 
 | Parameter          | Type             | Description |
 |--------------------|------------------|-------------|
@@ -169,16 +162,34 @@ Removes a faction of a polity, if the PolityStruct polityName, className and fac
 |--------------------|------------------|-------------|
 | `_struct`     | `PolityStruct`   | The PolityStruct which must include a polityName, className and factionName. |
 
+#### SerializePolities()
+
+Calls `JsonConvert.SerializeObject` on the `Polity[]` polities variable.
+This does does set a global value in `PolityManager`, it just serializes the polities array.
+
+**Returns**
+The `string` representing the `Polity[]` array in `PolityManager`. Do not that it will _not_ serialize the `Texture2D` emblem and `PolityMember` leader of the Polity<sup>1</sup>, Class<sup>2</sup> or Faction<sup>3</sup>.
+
+#### DeserializePolities()
+
+Calls `JsonConvert.DeserializeObject<Polity[]>` on a string representing the `Polity[]` array.
+An overload method takes no argument, and uses `SerializePolities()` as the parameter.
+
+**Returns**
+The Polity[] array representing the polities of PolityManager.
+
 #### SerializePolityMatrix()
 
-Calls `JsonConvert.SerializeObject` on the relationships `PolityRelation[,]` matrix
+Calls `JsonConvert.SerializeObject` on the relationships `PolityRelation[,]` matrix.
+
 **Returns**
 The `string` of that serialized matrix.
 
 #### DeserializePolityMatrix()
 
-Calls `JsonConvert.JsonConvert.DeserializeObject<PolityRelation[,]>` on a string representing the PolityRelation matrix.
+Calls `JsonConvert.DeserializeObject<PolityRelation[,]>` on a string representing the `PolityRelation[,]` matrix.
 An overload method can accept any string, as long as it represents a matrix.
+
 **Returns**
 The `PolityRelation[,]` matrix which was deserialized from the string.
 
@@ -212,6 +223,14 @@ Sets a new leader for the polity, or its class and faction to the PolityMember w
 |--------------------|------------------|-------------|
 | `_struct`     | `PolityStruct`   | The PolityStruct which must include a polityName, and optionally a class and faction. |
 
+#### SetPolityLeader()
+
+Sets a new leader for the polity, or its class and faction to the `PolityMember` newLeader parameter.
+| Parameter          | Type             | Description |
+|--------------------|------------------|-------------|
+| `newLeader`     | `PolityMember`   | The PolityMember which will be the new leader of this polity. Set to `null` if you want this polity to have no leaders. |
+| `_struct`  | `PolityStruct`         | The PolityStruct which must include a polityName, className and factionName. |
+
 #### GetMemberPolity()
 
 **Returns**
@@ -227,6 +246,10 @@ The `PolityMember`'s `FamilyStruct`.
 #### OnRelationChange
 
 Invoked whenever `ModifyPolityRelation()` is called or when the _Polity Relation Matrix_ cell is clicked on.
+
+#### OnLeaderChange
+
+Invoked whenever a `PolityMember` is set to a new Polity as their leader with `SetAsPolityLeader()` or `SetPolityLeader()`.
 
 #### OnFactionChange
 
@@ -305,10 +328,10 @@ Mon of the Tokugawa clan of Tokugawa Shogunate
 By Hyakurakuto - CC BY-SA 3.0, <https://commons.wikimedia.org/w/index.php?curid=1056853>
 
 Laurel Wreath free icon
-By Freepik - Flaticon License, <https://www.flaticon.com/free-icon/laurel-wreath_6024978>
+By Freepik - Flaticon License, <https://www.flaticon.com/free-icon/laurel-wreath_6024978>v
 
 PBR Ground texture
-ambientcg.com - CC0 License
+[ambientcg.com](https://ambientcg.com) - CC0 License
 
 **Polity Manager** was developed by Khiem Luong ([github.com/khiemgluong](https://github.com/khiemgluong))
 
