@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace KhiemLuong
 {
-    using static KhiemLuong.PolityManager;
+    using static PolityManager;
     [CustomEditor(typeof(PolityManager))]
     public class PolityManagerEditor : Editor
     {

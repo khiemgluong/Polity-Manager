@@ -2,7 +2,6 @@ using System;
 using UnityEngine;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using UnityEditor;
 
 namespace KhiemLuong
 {
@@ -319,7 +318,7 @@ namespace KhiemLuong
             /// The leader of this specific unit, e.g. an emperor, queen or manager.
             /// </summary>
             [Tooltip("The leader of this unit, e.g. an emperor, queen or manager.")]
-            [PrefabOnly, JsonIgnore]
+            [JsonIgnore]
             public PolityMember leader;
         }
 
@@ -347,32 +346,6 @@ namespace KhiemLuong
             public string factionName;
             public bool isFactionLeader;
 
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Field)]
-    class PrefabOnlyAttribute : PropertyAttribute { }
-
-    [CustomPropertyDrawer(typeof(PrefabOnlyAttribute))]
-    class PrefabOnlyDrawer : PropertyDrawer
-    {
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-        {
-            EditorGUI.BeginProperty(position, label, property);
-            // Only allow prefab objects to be assigned
-            if (property.objectReferenceValue != null)
-            {
-                var path = AssetDatabase.GetAssetPath(property.objectReferenceValue.GetInstanceID());
-                bool isPrefab = !string.IsNullOrEmpty(path) && path.Contains(".prefab");
-                if (!isPrefab)
-                {
-                    property.objectReferenceValue = null;
-                    EditorGUI.HelpBox(position, "Only prefabs are allowed.", MessageType.Error);
-                }
-            }
-
-            EditorGUI.PropertyField(position, property, label);
-            EditorGUI.EndProperty();
         }
     }
 }
