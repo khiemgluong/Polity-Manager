@@ -26,7 +26,8 @@
       - [ContextMenu("Cleanup Family")](#contextmenucleanup-family)
       - [ChangeMemberPolity()](#changememberpolity)
       - [SetAsPolityLeader()](#setaspolityleader)
-      - [SetPolityLeader()](#setpolityleader)
+      - [static SetPolityLeader()](#static-setpolityleader)
+      - [static GetMembersInPolity()](#static-getmembersinpolity)
       - [GetMemberPolity()](#getmemberpolity)
       - [GetMemberFamily()](#getmemberfamily)
     - [Events](#events)
@@ -165,10 +166,10 @@ Removes a faction of a polity, if the PolityStruct polityName, className and fac
 #### SerializePolities()
 
 Calls `JsonConvert.SerializeObject` on the `Polity[]` polities variable.
-This does does set a global value in `PolityManager`, it just serializes the polities array.
+This does not set a global value in `PolityManager`, it just serializes the polities array.
 
 **Returns**
-The `string` representing the `Polity[]` array in `PolityManager`. Do not that it will _not_ serialize the `Texture2D` emblem and `PolityMember` leader of the Polity<sup>1</sup>, Class<sup>2</sup> or Faction<sup>3</sup>.
+The `string` representing the `Polity[]` array in `PolityManager`. Do note that it will _not_ serialize the `Texture2D` emblem and `PolityMember` leader of the Polity<sup>1</sup>, Class<sup>2</sup> or Faction<sup>3</sup>.
 
 #### DeserializePolities()
 
@@ -223,13 +224,24 @@ Sets a new leader for the polity, or its class and faction to the PolityMember w
 |--------------------|------------------|-------------|
 | `_struct`     | `PolityStruct`   | The PolityStruct which must include a polityName, and optionally a class and faction. |
 
-#### SetPolityLeader()
+#### static SetPolityLeader()
 
 Sets a new leader for the polity, or its class and faction to the `PolityMember` newLeader parameter.
 | Parameter          | Type             | Description |
 |--------------------|------------------|-------------|
 | `newLeader`     | `PolityMember`   | The PolityMember which will be the new leader of this polity. Set to `null` if you want this polity to have no leaders. |
 | `_struct`  | `PolityStruct`         | The PolityStruct which must include a polityName, className and factionName. |
+
+#### static GetMembersInPolity()
+
+Gets all `PolityMember[]` classes in the scene, then filters out the members which belongs to the polity, class or faction according to the provided `PolityStruct`.
+| Parameter          | Type             | Description |
+|--------------------|------------------|-------------|
+| `_struct`     | `PolityStruct`   | Gets the `PolityMember[]` based on the provided struct values (polityName, className, factionName) |
+| `getInactive`  | `boolean`         | Includes inactive PolityMember[] if true. defaults to false in overload if not provided. |
+
+**Returns**
+The array of filtered PolityMember[] belonging to the PolityStruct.
 
 #### GetMemberPolity()
 
@@ -284,8 +296,8 @@ Invoked whenever a `Faction` is created or removed with `AddFactionToPolity()` a
 
 You can set a PolityMember to a polity and create a political relation to another polity if this is all you need. However, you can expand this relationship to each individual PolityMember for them to be connected not just by political affiliation, but by family.
 
-The _Polity Member Graph_ is a node based graph which can be accessed by clicking on the  `Polity Member Graph` Button under the _Polity Relation Matrix_ inside of `PolityManager`. The family structure that is created in this graph is **relative**, meaning that it will only include the Root Node's parents, partners, and children which is directly related to the root node.
->![Polity Member Graph example](<PolityMember Graph.png>)
+The _Member Family Graph_ is a node based graph which can be accessed by clicking on the  `Member Family Graph` Button under the _Polity Relation Matrix_ inside of `PolityManager`. The family structure that is created in this graph is **relative**, meaning that it will only include the Root Node's parents, partners, and children which is directly related to the root node.
+>![Polity Member Family Graph example](<PolityMember Graph.png>)
 >
 > The root node (Root 0) indicates 2 parents indicated by a red line with red nodes, a partner indicated by a green line with green nodes, and their child, with the blue line indicating lineage from the root node, and the cyan line from the root node's partner with that child.
 
@@ -328,7 +340,7 @@ Mon of the Tokugawa clan of Tokugawa Shogunate
 By Hyakurakuto - CC BY-SA 3.0, <https://commons.wikimedia.org/w/index.php?curid=1056853>
 
 Laurel Wreath free icon
-By Freepik - Flaticon License, <https://www.flaticon.com/free-icon/laurel-wreath_6024978>v
+By Freepik - Flaticon License, <https://www.flaticon.com/free-icon/laurel-wreath_6024978>
 
 PBR Ground texture
 [ambientcg.com](https://ambientcg.com) - CC0 License

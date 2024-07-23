@@ -35,12 +35,15 @@ namespace KhiemLuong
 
             if (manager.relationships == null || manager.relationships.GetLength(0) != manager.polities.Length || manager.relationships.GetLength(1) != manager.polities.Length)
                 manager.relationships = new PolityRelation[manager.polities.Length, manager.polities.Length];
-            GUILayout.BeginVertical();
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
 
             GUIStyle centeredStyle = new(GUI.skin.label)
             { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
             EditorGUILayout.LabelField("Polity Relation Matrix", centeredStyle);
+
+            /* ----------------------------- BEGIN VERTICAL ----------------------------- */
+            GUILayout.BeginVertical();
+            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
+
             // Create the matrix GUI with headers
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space(-47);
@@ -57,7 +60,6 @@ namespace KhiemLuong
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField(manager.polities[i].name, new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleRight }, GUILayout.Width(headerWidth));
-
                 // Create a grid but only for entries above the diagonal
                 for (int j = manager.polities.Length - 1; j > i; j--) // Note the condition and the decrement
                 {
@@ -86,10 +88,10 @@ namespace KhiemLuong
                 }
                 EditorGUILayout.EndHorizontal();
             }
-            EditorGUILayout.EndScrollView();
-            GUILayout.EndVertical();
+            EditorGUILayout.EndScrollView(); GUILayout.EndVertical();
+            /* ------------------------------ END VERTICAL ------------------------------ */
 
-            if (!Application.isPlaying) if (GUILayout.Button("Polity Member Graph"))
+            if (!Application.isPlaying) if (GUILayout.Button("Member Family Graph"))
                     EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
 
             // Save changes

@@ -316,9 +316,9 @@ namespace KhiemLuong
             [JsonIgnore]
             public Texture2D emblem;
             /// <summary>
-            /// The leader of this specific unit, e.g. an emperor, chief or manager.
+            /// The leader of this specific unit, e.g. an emperor, queen or manager.
             /// </summary>
-            [Tooltip("The leader of this unit, e.g. an emperor, chief or manager.")]
+            [Tooltip("The leader of this unit, e.g. an emperor, queen or manager.")]
             [PrefabOnly, JsonIgnore]
             public PolityMember leader;
         }

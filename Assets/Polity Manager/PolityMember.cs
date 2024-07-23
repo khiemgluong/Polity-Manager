@@ -172,23 +172,20 @@ namespace KhiemLuong
         public void SetAsPolityLeader(PolityStruct _struct) =>
             SetPolityLeader(this, _struct);
 
-        public void SetPolityLeader(PolityMember newLeader, PolityStruct _struct)
+        public static void SetPolityLeader(PolityMember newLeader, PolityStruct _struct)
         {
             if (string.IsNullOrEmpty(_struct.polityName))
             { Debug.LogError("No Polity Name Provided"); return; }
             foreach (var polity in PM.polities)
                 if (_struct.polityName.Equals(polity.name))
-                {
-                    polity.leader = newLeader;
                     if (!string.IsNullOrEmpty(_struct.className))
                     {
-                        foreach (var polityClass in polity.classes)
-                            if (_struct.className.Equals(polityClass.name))
+                        foreach (var _class in polity.classes)
+                            if (_struct.className.Equals(_class.name))
                             {
-                                polityClass.leader = newLeader;
                                 if (!string.IsNullOrEmpty(_struct.factionName))
                                 {
-                                    foreach (var faction in polityClass.factions)
+                                    foreach (var faction in _class.factions)
                                         if (_struct.factionName.Equals(faction.name))
                                         {
                                             faction.leader = newLeader;
@@ -196,12 +193,16 @@ namespace KhiemLuong
                                         }
                                     Debug.LogError("No Faction Found");
                                 }
-                                else OnLeaderChange?.Invoke();
+                                else
+                                {
+                                    _class.leader = newLeader;
+                                    OnLeaderChange?.Invoke(); break;
+                                }
                             }
                         Debug.LogError("No Class Found");
                     }
-                    else { Debug.Log("No Class Given"); OnLeaderChange?.Invoke(); }
-                }
+                    else
+                    { polity.leader = newLeader; OnLeaderChange?.Invoke(); break; }
         }
 
         /* --------------------------------- Getters -------------------------------- */
@@ -225,6 +226,68 @@ namespace KhiemLuong
                 partners = partners.ToArray(),
                 children = children.ToArray(),
             }; return familyStruct;
+        }
+
+        /// <summary>
+        /// Gets all PolityMember classes in the scene, then filters out the members which belongs to the polity, class or faction to the PolityStruct
+        /// </summary>
+        /// <param name="_struct">Gets the PolityMember[] based on the provided struct values (polityName, className, factionName)</param>
+        /// <param name="getInactive"></param>
+        /// <returns>The array of filtered PolityMember[] belonging to the PolityStruct</returns>
+        public static PolityMember[] GetMembersInPolity(PolityStruct _struct) => GetMembersInPolity(_struct, false);
+
+        public static PolityMember[] GetMembersInPolity(PolityStruct _struct, bool getInactive)
+        {
+            if (string.IsNullOrEmpty(_struct.polityName))
+            { Debug.LogError("No Polity Name Provided"); return null; }
+            PolityMember[] members;
+            if (!getInactive) members = FindObjectsOfType<PolityMember>();
+            else members = Resources.FindObjectsOfTypeAll<PolityMember>();
+
+            List<PolityMember> filteredMembers = new();
+            if (members.Length > 0)
+            {
+                int polityI = -1, classI = -1, factionI = -1;
+                foreach (var polity in PM.polities)
+                    if (_struct.polityName.Equals(polity.name))
+                    {
+                        polityI = Array.IndexOf(PM.polities, polity);
+                        if (!string.IsNullOrEmpty(_struct.className))
+                        {
+                            foreach (var _class in polity.classes)
+                                if (_struct.className.Equals(_class.name))
+                                {
+                                    classI = Array.IndexOf(polity.classes, _class);
+                                    if (!string.IsNullOrEmpty(_struct.factionName))
+                                    {
+                                        foreach (var faction in _class.factions)
+                                            if (_struct.factionName.Equals(faction.name))
+                                            {
+                                                factionI = _class.factions.IndexOf(faction);
+                                                break;
+                                            }
+                                        if (factionI == -1) Debug.LogError("No Faction Found");
+                                        break;
+                                    }
+                                    break;
+                                }
+                            if (classI == -1) Debug.LogError("No Class Found");
+                        }
+                        break;
+                    }
+
+                if (polityI != -1)
+                    foreach (PolityMember member in members)
+                    {
+                        bool match = true; if (polityI != -1 && !member.polityName.Equals(PM.polities[polityI].name)) match = false;
+                        if (classI != -1 && !member.className.Equals(PM.polities[polityI].classes[classI].name)) match = false;
+                        if (factionI != -1 && !member.factionName.Equals(PM.polities[polityI].classes[classI].factions[factionI].name))
+                            match = false;
+                        if (match) filteredMembers.Add(member);
+                    }
+                else Debug.LogError("No Polity Found");
+            }
+            return filteredMembers.ToArray();
         }
 
         /* -------------------------------------------------------------------------- */
