@@ -17,10 +17,10 @@ namespace KhiemLuong
         /// This PolityMember is retrieved from an Ally's NPC_driver enemyTarget.
         /// </summary>
         public PolityMember allyEnemyTarget = null;
+        public BehaviorGraph actionGraph;
+        BehaviorGraph.BehaviorStruct behaviorStruct;
 
         void Awake()
-        { enemyTarget = null; allyEnemyTarget = null; }
-        void Start()
         {
             member = GetComponent<PolityMember>();
             animator = GetComponent<Animator>();
@@ -29,8 +29,27 @@ namespace KhiemLuong
             agent.avoidancePriority = Random.Range(1, 99);
 
             spawnPos = transform.position;
+            enemyTarget = null; allyEnemyTarget = null;
+
+            behaviorStruct = new()
+            {
+                agent = agent,
+                animator = animator,
+                // targetObj = targetObj,
+            };
+            actionGraph.Initialize(ref behaviorStruct);
         }
-        void OnEnable() => OnRelationChange += OnPolityStateChanged;
+        void OnEnable()
+        {
+            TimeController.OnTimeInterval += CheckInterval;
+            OnRelationChange += OnPolityStateChanged;
+        }
+
+        void CheckInterval()
+        {
+            Debug.LogError("stf");
+            actionGraph.Restart(ref behaviorStruct);
+        }
         // Update is called once per frame
         void Update()
         {
