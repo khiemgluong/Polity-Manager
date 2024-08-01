@@ -33,31 +33,6 @@ namespace KhiemLuong
 
         void Awake() => CleanupFamily();
 
-        void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.H))
-            {
-                PolityStruct polityStruct = new()
-                {
-                    polityName = polityName,
-                    className = className,
-                    factionName = "Test"
-                };
-                PM.AddFactionToPolity(polityStruct);
-            }
-            if (Input.GetKeyDown(KeyCode.K))
-            {
-                PolityStruct polityStruct = new()
-                {
-                    polityName = polityName,
-                    className = className,
-                    factionName = factionName
-                };
-                PM.RemoveFactionFromPolity(polityStruct);
-            }
-        }
-
-
         void OnFactionChanged()
         {
             bool isCurrentFactionStillAvailable = false;

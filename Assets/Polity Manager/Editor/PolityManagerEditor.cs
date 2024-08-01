@@ -11,8 +11,6 @@ namespace KhiemLuong
         Vector2 scrollPosition;
         const float gridSize = 20, headerWidth = 120;
 
-        void OnEnable()
-        { PolityManager manager = (PolityManager)target; manager.DeserializePolityMatrix(); }
         public override void OnInspectorGUI()
         {
             PolityManager manager = (PolityManager)target;
@@ -29,12 +27,8 @@ namespace KhiemLuong
             if (EditorGUI.EndChangeCheck())
             {
                 serializedObject.ApplyModifiedProperties();
-                manager.DeserializePolityMatrix();
                 EditorUtility.SetDirty(manager);
             }
-
-            if (manager.relationships == null || manager.relationships.GetLength(0) != manager.polities.Length || manager.relationships.GetLength(1) != manager.polities.Length)
-                manager.relationships = new PolityRelation[manager.polities.Length, manager.polities.Length];
 
             GUIStyle centeredStyle = new(GUI.skin.label)
             { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
@@ -63,7 +57,7 @@ namespace KhiemLuong
                 // Create a grid but only for entries above the diagonal
                 for (int j = manager.polities.Length - 1; j > i; j--) // Note the condition and the decrement
                 {
-                    string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.relationships[i, j]}";
+                    string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.polityRelationMatrix[i, j]}";
                     GUIContent buttonContent = new GUIContent("", tooltipText);  // Tooltip text as the second parameter
                     Rect gridRect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
 
@@ -72,17 +66,16 @@ namespace KhiemLuong
                         switch (Event.current.button)
                         {
                             case 0: // Left mouse button
-                                manager.relationships[i, j] = GetNextRelationship(manager.relationships[i, j]); break;
+                                manager.polityRelationMatrix[i, j] = GetNextRelationship(manager.polityRelationMatrix[i, j]); break;
                             case 1: // Right mouse button
-                                manager.relationships[i, j] = GetBackRelationship(manager.relationships[i, j]); break;
+                                manager.polityRelationMatrix[i, j] = GetBackRelationship(manager.polityRelationMatrix[i, j]); break;
                             default: return;
                         }
-                        manager.relationships[j, i] = manager.relationships[i, j];//Set reciprocal
+                        manager.polityRelationMatrix[j, i] = manager.polityRelationMatrix[i, j];//Set reciprocal
                         if (Application.isPlaying) OnRelationChange?.Invoke();
-                        manager.SerializePolityMatrix();
                     }
 
-                    Color color = GetColorForRelationship(manager.relationships[i, j]);
+                    Color color = GetColorForRelationship(manager.polityRelationMatrix[i, j]);
                     EditorGUI.DrawRect(gridRect, color);
                     GUI.Label(gridRect, ""); // Optionally add labels or icons
                 }

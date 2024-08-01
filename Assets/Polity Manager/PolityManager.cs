@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace KhiemLuong
@@ -17,14 +16,14 @@ namespace KhiemLuong
             Allies,
             Enemies
         }
-        public PolityRelation[,] relationships;
-        [SerializeField] string serializedRelationships;
+        public PolityRelation[,] polityRelationMatrix = new PolityRelation[0, 0];
         [SerializeField]
         [Tooltip("Set to true to persist this Singleton across scenes")] bool dontDestroyOnLoad;
         /* --------------------------------- EVENTS --------------------------------- */
         public static Action OnRelationChange;
         public static Action OnFactionChange;
 
+        void OnEnable() => ValidatePolityRelationMatrix();
         void Awake()
         {
             if (PM != null && PM != this) Destroy(gameObject);
@@ -34,18 +33,52 @@ namespace KhiemLuong
                 if (dontDestroyOnLoad)
                     DontDestroyOnLoad(gameObject);
             }
-            DeserializePolityMatrix();
         }
+        void OnValidate() => ValidatePolityRelationMatrix();
 
-        [ContextMenu("Reset Polity Matrix")]
-        void ResetPolityMatrix()
+        [ContextMenu("Reset Polity Relation Matrix")]
+        void ResetPolityRelationMatrix()
         {
             int size = polities.Length;
-            relationships = new PolityRelation[size, size];
+            polityRelationMatrix = new PolityRelation[size, size];
             for (int i = 0; i < size; i++)
                 for (int j = 0; j < size; j++)
-                    relationships[i, j] = PolityRelation.Neutral;
-            SerializePolityMatrix();
+                    polityRelationMatrix[i, j] = PolityRelation.Neutral;
+            ValidatePolityRelationMatrix();
+        }
+        void ValidatePolityRelationMatrix()
+        {
+            if (polityRelationMatrix == null ||
+                polityRelationMatrix.GetLength(0) != polities.Length ||
+                polityRelationMatrix.GetLength(1) != polities.Length)
+            {
+                // Create a temporary matrix to hold existing data
+                PolityRelation[,] tempMatrix = new PolityRelation[polities.Length, polities.Length];
+                if (polityRelationMatrix != null)
+                {
+                    int minRows = Mathf.Min(polityRelationMatrix.GetLength(0), polities.Length);
+                    int minCols = Mathf.Min(polityRelationMatrix.GetLength(1), polities.Length);
+
+                    for (int i = 0; i < minRows; i++)
+                        for (int j = 0; j < minCols; j++)
+                            tempMatrix[i, j] = polityRelationMatrix[i, j];
+                }
+                // Replace the old matrix with the new matrix of appropriate size
+                polityRelationMatrix = tempMatrix;
+                CheckForDuplicatePolityNames();
+            }
+        }
+
+        [ContextMenu("Find Duplicate Polity Names")]
+        void CheckForDuplicatePolityNames()
+        {
+            Dictionary<string, int> nameIndex = new();
+            for (int i = 0; i < polities.Length; i++)
+            {
+                if (nameIndex.ContainsKey(polities[i].name))
+                    Debug.LogWarning($"Duplicate polity name found: {polities[i].name} at index {i}, first found at index {nameIndex[polities[i].name]}");
+                else nameIndex[polities[i].name] = i;
+            }
         }
 
         /* -------------------------------------------------------------------------- */
@@ -53,26 +86,6 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
 
         /* --------------------------------- GETTERS -------------------------------- */
-        public PolityRelation[,] DeserializePolityMatrix(string _serializedRelationships)
-        {
-            if (!string.IsNullOrEmpty(_serializedRelationships))
-                relationships = JsonConvert.DeserializeObject<PolityRelation[,]>(_serializedRelationships);
-            return relationships;
-        }
-        public PolityRelation[,] DeserializePolityMatrix() => DeserializePolityMatrix(serializedRelationships);
-        /// <summary>
-        /// Deserializes a string represent the Polity[] array, it does not overwrite the actual polities variable
-        /// </summary>
-        /// <param name="serializedPolities">The string serialized from SerializePolities()</param>
-        /// <returns>The Polity[] object and its children, except Texture2D emblem and PolityMember leader.</returns>
-        public Polity[] DeserializePolities(string serializedPolities)
-        {
-            Polity[] _polities = null; if (!string.IsNullOrEmpty(serializedPolities))
-                _polities = JsonConvert.DeserializeObject<Polity[]>(serializedPolities);
-            return _polities;
-        }
-        public Polity[] DeserializePolities() => DeserializePolities(SerializePolities());
-
         /// <summary>
         /// Gets the current PolityRelation from one PolityMember to another.
         /// </summary>
@@ -86,7 +99,7 @@ namespace KhiemLuong
             if (yourIndex == -1 || theirIndex == -1)
             { Debug.LogError("One or both polity names not found."); return default; }
 
-            PolityRelation relation = relationships[yourIndex, theirIndex];
+            PolityRelation relation = polityRelationMatrix[yourIndex, theirIndex];
             Debug.Log($"Relationship between {yourPolityName} & {theirPolityName} is {relation} at {yourIndex},{theirIndex}");
             return relation;
         }
@@ -161,17 +174,6 @@ namespace KhiemLuong
         }
 
         /* --------------------------------- SETTERS -------------------------------- */
-        public string SerializePolityMatrix()
-        {
-            serializedRelationships = JsonConvert.SerializeObject(relationships);
-            return serializedRelationships;
-        }
-        public string SerializePolities()
-        {
-            string serializedPolities = JsonConvert.SerializeObject(polities);
-            Debug.Log("serialized polities: " + serializedPolities);
-            return serializedPolities;
-        }
         /// <summary>
         /// Sets a new relation of one polity to another by their name, to FactionRelation
         /// </summary>
@@ -187,9 +189,8 @@ namespace KhiemLuong
                 Debug.LogError("One or both polity names not found.");
                 return;
             }
-            relationships[thisIndex, theirIndex] = newRelation;
-            relationships[theirIndex, thisIndex] = newRelation;
-            SerializePolityMatrix();
+            polityRelationMatrix[thisIndex, theirIndex] = newRelation;
+            polityRelationMatrix[theirIndex, thisIndex] = newRelation;
             OnRelationChange?.Invoke();
             Debug.Log($"Set relation between {thisPolityName} & {theirPolityName} to {newRelation}");
         }
@@ -312,13 +313,13 @@ namespace KhiemLuong
             /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
             /// </summary>
             [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
-            [JsonIgnore]
+            // [JsonIgnore]
             public Texture2D emblem;
             /// <summary>
             /// The leader of this specific unit, e.g. an emperor, queen or manager.
             /// </summary>
             [Tooltip("The leader of this unit, e.g. an emperor, queen or manager.")]
-            [JsonIgnore]
+            // [JsonIgnore]
             public PolityMember leader;
         }
 

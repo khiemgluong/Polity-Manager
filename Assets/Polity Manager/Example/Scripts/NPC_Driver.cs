@@ -7,23 +7,19 @@ namespace KhiemLuong
     public class NPC_Driver : MonoBehaviour
     {
         PolityMember member;
-        Animator animator;
         NavMeshAgent agent;
-        Vector3 lastPosition;
-        Vector3 currentVelocity;
         Vector3 spawnPos;
-        public PolityMember enemyTarget = null;
+        readonly float detectionRadius = 6f;
+        public PolityMember enemyTarget, allyEnemyTarget;
         /// <summary>
         /// This PolityMember is retrieved from an Ally's NPC_driver enemyTarget.
         /// </summary>
-        public PolityMember allyEnemyTarget = null;
-        public BehaviorGraph actionGraph;
-        BehaviorGraph.BehaviorStruct behaviorStruct;
-
+        public Transform targetArrow;
         void Awake()
         {
+            targetArrow = transform.Find("TargetArrow");
+            targetArrow.gameObject.SetActive(false);
             member = GetComponent<PolityMember>();
-            animator = GetComponent<Animator>();
             agent = GetComponent<NavMeshAgent>();
             SearchForPolityMembers();
             agent.avoidancePriority = Random.Range(1, 99);
@@ -31,35 +27,39 @@ namespace KhiemLuong
             spawnPos = transform.position;
             enemyTarget = null; allyEnemyTarget = null;
 
-            behaviorStruct = new()
-            {
-                agent = agent,
-                animator = animator,
-                // targetObj = targetObj,
-            };
-            actionGraph.Initialize(ref behaviorStruct);
         }
-        void OnEnable()
-        {
-            TimeController.OnTimeInterval += CheckInterval;
-            OnRelationChange += OnPolityStateChanged;
-        }
+        void OnEnable() => OnRelationChange += OnPolityStateChanged;
 
-        void CheckInterval()
-        {
-            Debug.LogError("stf");
-            actionGraph.Restart(ref behaviorStruct);
-        }
         // Update is called once per frame
         void Update()
         {
-            if (allyEnemyTarget != null) MoveTowardsPolityMemberTarget(allyEnemyTarget);
-            else if (enemyTarget != null) MoveTowardsPolityMemberTarget(enemyTarget);
-            currentVelocity = (transform.position - lastPosition) / Time.deltaTime;
-            lastPosition = transform.position;
-            animator.SetFloat("Blend", GetRelativeVelocity().y);
+            if (allyEnemyTarget != null)
+            {
+                MoveTowardsPolityMemberTarget(allyEnemyTarget);
+                RotateArrowTowardsTarget(allyEnemyTarget.transform);
+            }
+            else if (enemyTarget != null)
+            {
+                MoveTowardsPolityMemberTarget(enemyTarget);
+                RotateArrowTowardsTarget(enemyTarget.transform);
+            }
         }
 
+        void RotateArrowTowardsTarget(Transform target)
+        {
+            float originalXRotation = targetArrow.eulerAngles.x;
+            float originalZRotation = targetArrow.eulerAngles.z;
+
+            targetArrow.LookAt(target);
+
+            Quaternion additionalRotation = Quaternion.Euler(0, -90, 0);
+            targetArrow.rotation *= additionalRotation;
+
+            Vector3 currentEulerAngles = targetArrow.eulerAngles;
+            currentEulerAngles.x = originalXRotation;
+            currentEulerAngles.z = originalZRotation;
+            targetArrow.eulerAngles = currentEulerAngles;
+        }
         void MoveTowardsPolityMemberTarget(PolityMember polityMember)
         {
             agent.SetDestination(polityMember.transform.position);
@@ -68,31 +68,24 @@ namespace KhiemLuong
 
             Quaternion targetRotation = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, singleStep);
-
-            if (agent.remainingDistance < 1.05f) animator.SetLayerWeight(1, 1);
         }
-
-        Vector2 GetRelativeVelocity()
-        {
-            Vector3 localVelocity = transform.InverseTransformDirection(currentVelocity);
-            return new Vector2(localVelocity.x, localVelocity.z);
-        }
-
-
-        readonly float detectionRadius = 35.0f;
 
         void OnPolityStateChanged()
         {
             if (allyEnemyTarget != null)
             {
                 PolityRelation relation = PM.GetPolityRelation(member, allyEnemyTarget);
-                Debug.Log("Ally: " + relation + " " + gameObject.name + " to " + allyEnemyTarget.name, gameObject);
                 switch (relation)
                 {
+                    case PolityRelation.Allies:
+                        enemyTarget = null;
+                        agent.SetDestination(spawnPos);
+                        targetArrow.gameObject.SetActive(false);
+                        break;
                     case PolityRelation.Neutral:
-                        Debug.Log("Ally neutral");
                         allyEnemyTarget = null;
                         SearchForPolityMembers();
+                        targetArrow.gameObject.SetActive(false);
                         break;
                 }
             }
@@ -101,10 +94,9 @@ namespace KhiemLuong
                 PolityRelation relation = PM.GetPolityRelation(member, enemyTarget);
                 if (relation == PolityRelation.Neutral)
                 {
-                    Debug.Log("Enemy Neutral");
                     enemyTarget = null;
-                    animator.SetLayerWeight(1, 0);
                     agent.SetDestination(spawnPos);
+                    targetArrow.gameObject.SetActive(false);
                 }
                 else SearchForPolityMembers();
             }
@@ -124,12 +116,17 @@ namespace KhiemLuong
                             case PolityRelation.Allies:
                                 NPC_Driver allyNPC = polityMember.GetComponent<NPC_Driver>();
                                 if (allyNPC.enemyTarget != null)
-                                    allyEnemyTarget = allyNPC.enemyTarget;
+                                    if (allyNPC.enemyTarget != null)
+                                    {
+                                        allyEnemyTarget = allyNPC.enemyTarget;
+                                        targetArrow.gameObject.SetActive(true);
+                                    }
                                 break;
                             case PolityRelation.Enemies:
                                 allyEnemyTarget = null;
                                 enemyTarget = polityMember;
                                 agent.updateRotation = false;
+                                targetArrow.gameObject.SetActive(true);
                                 break;
                         }
                     }
