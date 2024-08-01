@@ -1,29 +1,19 @@
 # Polity Manager - Manage Factions, Teams & Families
 
-- [Polity Manager - Manage Factions, Teams \& Families](#polity-manager---manage-factions-teams--families)
   - [Description](#description)
     - [Use Cases](#use-cases)
-  - [Requirements](#requirements)
   - [Quickstart](#quickstart)
     - [Video Tutorial](#video-tutorial)
     - [Demo Tutorial](#demo-tutorial)
   - [Public APIs](#public-apis)
     - [PolityManager.cs](#politymanagercs)
-      - [ContextMenu("Reset Polity Matrix")](#contextmenureset-polity-matrix)
       - [ModifyPolityRelation()](#modifypolityrelation)
       - [GetPolityRelation()](#getpolityrelation)
       - [GetPolityEmblem()](#getpolityemblem)
       - [GetPolityLeader()](#getpolityleader)
       - [AddFactionToPolity()](#addfactiontopolity)
       - [RemoveFactionFromPolity()](#removefactionfrompolity)
-      - [SerializePolities()](#serializepolities)
-      - [DeserializePolities()](#deserializepolities)
-      - [SerializePolityMatrix()](#serializepolitymatrix)
-      - [DeserializePolityMatrix()](#deserializepolitymatrix)
     - [PolityMember.cs](#politymembercs)
-      - [ContextMenu("Check Family")](#contextmenucheck-family)
-      - [ContextMenu("Delete Family")](#contextmenudelete-family)
-      - [ContextMenu("Cleanup Family")](#contextmenucleanup-family)
       - [ChangeMemberPolity()](#changememberpolity)
       - [SetAsPolityLeader()](#setaspolityleader)
       - [static SetPolityLeader()](#static-setpolityleader)
@@ -37,6 +27,14 @@
     - [Structs](#structs)
       - [PolityStruct](#politystruct)
       - [FamilyStruct](#familystruct)
+    - [PolityManager.cs ContextMenus](#politymanagercs-contextmenus)
+      - [Reset Polity Relation Matrix](#reset-polity-relation-matrix)
+      - [Find Duplicate Polity Names](#find-duplicate-polity-names)
+      - [Load Polity Relation Matrix](#load-polity-relation-matrix)
+    - [PolityMember.cs ContextMenus](#politymembercs-contextmenus)
+      - [Check Family](#check-family)
+      - [Delete Family](#delete-family)
+      - [Cleanup Family](#cleanup-family)
   - [Extra Settings](#extra-settings)
     - [Families](#families)
       - [Root Node](#root-node)
@@ -68,10 +66,6 @@ To connect these polities to a prefab GameObject, the `PolityMember.cs` componen
 
 Polity Manager is suited for games that needs to manage various groups of NPCs, especially when these relationships are a bit more complex, such as when one NPC needs to react to an enemy of one or more allied NPCs. However, it can also be applicable to simple teams or solo duels.
 
-## Requirements
-
-Requires the [`Newtonsoft.JSON`](https://www.newtonsoft.com/json) package to work. It should be installed as a dependency, but if not, enter `com.unity.nuget.newtonsoft-json` into `Add Package by Git URL` using the Unity UPM
-
 ## Quickstart
 
 ### [Video Tutorial](https://www.youtube.com/watch?v=f2wm8g-1v8A)
@@ -95,10 +89,6 @@ All classes in this package is under the `KhiemLuong` namespace.
 ### PolityManager.cs
 
 All public methods can be called from this PolityManager Singleton, referenced as `PM`, for example PM.ModifyPolityRelation();
-
-#### ContextMenu("Reset Polity Matrix")
-
-Reset every relation to `Neutral` and Serialize it.
 
 #### ModifyPolityRelation()
 
@@ -163,52 +153,12 @@ Removes a faction of a polity, if the PolityStruct polityName, className and fac
 |--------------------|------------------|-------------|
 | `_struct`     | `PolityStruct`   | The PolityStruct which must include a polityName, className and factionName. |
 
-#### SerializePolities()
-
-Calls `JsonConvert.SerializeObject` on the `Polity[]` polities variable.
-This does not set a global value in `PolityManager`, it just serializes the polities array.
-
-**Returns**
-The `string` representing the `Polity[]` array in `PolityManager`. Do note that it will _not_ serialize the `Texture2D` emblem and `PolityMember` leader of the Polity<sup>1</sup>, Class<sup>2</sup> or Faction<sup>3</sup>.
-
-#### DeserializePolities()
-
-Calls `JsonConvert.DeserializeObject<Polity[]>` on a string representing the `Polity[]` array.
-An overload method takes no argument, and uses `SerializePolities()` as the parameter.
-
-**Returns**
-The Polity[] array representing the polities of PolityManager.
-
-#### SerializePolityMatrix()
-
-Calls `JsonConvert.SerializeObject` on the relationships `PolityRelation[,]` matrix.
-
-**Returns**
-The `string` of that serialized matrix.
-
-#### DeserializePolityMatrix()
-
-Calls `JsonConvert.DeserializeObject<PolityRelation[,]>` on a string representing the `PolityRelation[,]` matrix.
-An overload method can accept any string, as long as it represents a matrix.
-
-**Returns**
+v**Returns**
 The `PolityRelation[,]` matrix which was deserialized from the string.
 
 ### PolityMember.cs
 
 A non-serialized MonoBehaviour class which communicates with the PolityManager Singleton to retrieve its polities, classes and factions which can be set for the specific GameObject that it is attached to.
-
-#### ContextMenu("Check Family")
-
-Check the relation between each family member to ensure its reciprocal, otherwise remove it.
-
-#### ContextMenu("Delete Family")
-
-Removes all family members and its reciprocal from the `parents`, `partners` & `children` Lists.
-
-#### ContextMenu("Cleanup Family")
-
-Removes any null or missing PolityMember family from the `parents`, `partners` & `children` Lists.
 
 #### ChangeMemberPolity()
 
@@ -289,6 +239,34 @@ Invoked whenever a `Faction` is created or removed with `AddFactionToPolity()` a
          public PolityMember[] partners;
          public PolityMember[] children;
       }
+
+### PolityManager.cs ContextMenus
+
+#### Reset Polity Relation Matrix
+
+Reset every relation to `Neutral`.
+
+#### Find Duplicate Polity Names
+
+Checks the polity names in `Polity[]` array and logs a warning for any duplicate names.
+
+#### Load Polity Relation Matrix
+
+If in some case the serialized polity relation matrix did not load, this can manually deserialize & load it.
+
+### PolityMember.cs ContextMenus
+
+#### Check Family
+
+Check the relation between each family member to ensure it is reciprocal, otherwise remove it.
+
+#### Delete Family
+
+Removes all family members and its reciprocal from the `parents`, `partners` & `children` Lists.
+
+#### Cleanup Family
+
+Removes any null or missing PolityMember family from the `parents`, `partners` & `children` Lists.
 
 ## Extra Settings
 

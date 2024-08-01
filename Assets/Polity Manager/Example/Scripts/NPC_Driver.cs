@@ -21,16 +21,14 @@ namespace KhiemLuong
             targetArrow.gameObject.SetActive(false);
             member = GetComponent<PolityMember>();
             agent = GetComponent<NavMeshAgent>();
-            SearchForPolityMembers();
             agent.avoidancePriority = Random.Range(1, 99);
-
             spawnPos = transform.position;
             enemyTarget = null; allyEnemyTarget = null;
-
+            OnRelationChange += OnPolityStateChanged;
         }
-        void OnEnable() => OnRelationChange += OnPolityStateChanged;
 
-        // Update is called once per frame
+        void Start() => SearchForPolityMembers();
+
         void Update()
         {
             if (allyEnemyTarget != null)

@@ -8,7 +8,7 @@ namespace KhiemLuong
     public class PolityMemberGraph : EditorWindow
     {
         /* ---------------------------- POLITY VARIABLES ---------------------------- */
-        enum NodePoint
+        enum NodeAnchor
         {
             Top,
             Right,
@@ -29,8 +29,8 @@ namespace KhiemLuong
         struct Node
         {
             public int NodeId;
-            public NodePoint Point;
-            public Node(int nodeId, NodePoint point)
+            public NodeAnchor Point;
+            public Node(int nodeId, NodeAnchor point)
             {
                 NodeId = nodeId;
                 Point = point;
@@ -45,8 +45,7 @@ namespace KhiemLuong
         /// </summary>
         int childNodeId = -1;
         bool isRootGenerated;
-        Dictionary<Node, Node> linkedNodes = new();
-        Dictionary<Node, Node> linkedChildNodes = new();
+        Dictionary<Node, Node> linkedNodes = new(), linkedChildNodes = new();
         Dictionary<int, RelationType> linkedRelationType = new();
 
         /* ------------------------------ PAN CONTROLS ------------------------------ */
@@ -339,16 +338,16 @@ namespace KhiemLuong
             {
                 case RelationType.Parents:
                 default:
-                    root = new Node(rootId, NodePoint.Top);
-                    target = new Node(id, NodePoint.Bottom);
+                    root = new Node(rootId, NodeAnchor.Top);
+                    target = new Node(id, NodeAnchor.Bottom);
                     break;
                 case RelationType.Partners:
-                    root = new Node(rootId, NodePoint.Right);
-                    target = new Node(id, NodePoint.Left);
+                    root = new Node(rootId, NodeAnchor.Right);
+                    target = new Node(id, NodeAnchor.Left);
                     break;
                 case RelationType.Children:
-                    root = new Node(rootId, NodePoint.Bottom);
-                    target = new Node(id, NodePoint.Top);
+                    root = new Node(rootId, NodeAnchor.Bottom);
+                    target = new Node(id, NodeAnchor.Top);
                     break;
             }
             if (linkedNodes.ContainsKey(target))
@@ -362,7 +361,7 @@ namespace KhiemLuong
         }
         void AttachCurveToParentNode(int id)
         {
-            Node root = new(childNodeId, NodePoint.Top), target = new(id, NodePoint.Child);
+            Node root = new(childNodeId, NodeAnchor.Top), target = new(id, NodeAnchor.Child);
             if (linkedRelationType.ContainsKey(id))
                 if (linkedRelationType[id] == RelationType.Partners)
                 {
@@ -516,34 +515,34 @@ namespace KhiemLuong
         /* -------------------------------------------------------------------------- */
         /*                            Bezier Curve Drawers                            */
         /* -------------------------------------------------------------------------- */
-        void DrawNodeCurve(Rect start, Rect end, NodePoint startConnection, NodePoint endConnection)
+        void DrawNodeCurve(Rect start, Rect end, NodeAnchor startConnection, NodeAnchor endConnection)
         {
             Vector2 startPercentage = GetPercentageFromConnectionPoint(startConnection);
             Vector2 endPercentage = GetPercentageFromConnectionPoint(endConnection);
             Color lineColor = GetStartConnectionLineColor(startConnection);
             DrawNodeCurve(start, end, startPercentage, endPercentage, lineColor);
         }
-        Vector2 GetPercentageFromConnectionPoint(NodePoint point)
+        Vector2 GetPercentageFromConnectionPoint(NodeAnchor point)
         {
             return point switch
             {
-                NodePoint.Top => new Vector2(0.5f, 0f),
-                NodePoint.Right => new Vector2(1.0f, 0.5f),
-                NodePoint.Left => new Vector2(0.0f, 0.5f),
-                NodePoint.Bottom => new Vector2(0.5f, 1f),
-                NodePoint.Child => new Vector2(0.5f, 1f),
+                NodeAnchor.Top => new Vector2(0.5f, 0f),
+                NodeAnchor.Right => new Vector2(1.0f, 0.5f),
+                NodeAnchor.Left => new Vector2(0.0f, 0.5f),
+                NodeAnchor.Bottom => new Vector2(0.5f, 1f),
+                NodeAnchor.Child => new Vector2(0.5f, 1f),
                 _ => new Vector2(0.5f, 0.5f),// Default to center if unknown for some reason
             };
         }
-        Color GetStartConnectionLineColor(NodePoint startConnection)
+        Color GetStartConnectionLineColor(NodeAnchor startConnection)
         {
             return startConnection switch
             {
-                NodePoint.Top => Color.blue,
-                NodePoint.Right => Color.green,
-                NodePoint.Left => Color.green,
-                NodePoint.Bottom => Color.red,
-                NodePoint.Child => Color.cyan,
+                NodeAnchor.Top => Color.blue,
+                NodeAnchor.Right => Color.green,
+                NodeAnchor.Left => Color.green,
+                NodeAnchor.Bottom => Color.red,
+                NodeAnchor.Child => Color.cyan,
                 _ => Color.black,// Default to center if unknown for some reason
             };
         }

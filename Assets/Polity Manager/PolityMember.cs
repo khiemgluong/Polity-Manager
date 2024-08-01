@@ -12,9 +12,7 @@ namespace KhiemLuong
         [SerializeField] int selectedPolityIndex, selectedClassIndex, selectedFactionIndex;
         public string polityName, className, factionName;
         [SerializeField] bool isPolityLeader, isClassLeader, isFactionLeader;
-        public List<PolityMember> parents;
-        public List<PolityMember> partners;
-        public List<PolityMember> children;
+        public List<PolityMember> parents, partners, children;
 
         /* --------------------------- ENCAPSULATED FIELDS -------------------------- */
         public int SelectedPolityIndex
@@ -28,11 +26,8 @@ namespace KhiemLuong
         public static Action OnLeaderChange;
 
         void OnEnable() => OnFactionChange += OnFactionChanged;
-
         void OnDisable() => OnFactionChange -= OnFactionChanged;
-
         void Awake() => CleanupFamily();
-
         void OnFactionChanged()
         {
             bool isCurrentFactionStillAvailable = false;

@@ -7,23 +7,25 @@ namespace KhiemLuong
     public class PolityManager : MonoBehaviour
     {
         public static PolityManager PM { get; private set; }
-        [Tooltip("The largest, most important political unit such as a government body or main team.")]
+        [Tooltip("The largest, most important organizational unit in your game.")]
         public Polity[] polities;
-        [Serializable]
+        public PolityRelation[,] polityRelationMatrix;
+        [SerializeField] string polityRelationMatrixString;
         public enum PolityRelation
         {
             Neutral,
             Allies,
             Enemies
         }
-        public PolityRelation[,] polityRelationMatrix = new PolityRelation[0, 0];
+
+        [Serializable]
+        class PolityRelationMatrixWrapper
+        { public List<PolityRelation> relations = new(); public int rows, columns; }
+
         [SerializeField]
         [Tooltip("Set to true to persist this Singleton across scenes")] bool dontDestroyOnLoad;
         /* --------------------------------- EVENTS --------------------------------- */
-        public static Action OnRelationChange;
-        public static Action OnFactionChange;
-
-        void OnEnable() => ValidatePolityRelationMatrix();
+        public static Action OnRelationChange, OnFactionChange;
         void Awake()
         {
             if (PM != null && PM != this) Destroy(gameObject);
@@ -34,7 +36,8 @@ namespace KhiemLuong
                     DontDestroyOnLoad(gameObject);
             }
         }
-        void OnValidate() => ValidatePolityRelationMatrix();
+
+        void OnValidate() { ValidatePolityRelationMatrix(); SerializePolityRelationMatrix(); }
 
         [ContextMenu("Reset Polity Relation Matrix")]
         void ResetPolityRelationMatrix()
@@ -44,10 +47,12 @@ namespace KhiemLuong
             for (int i = 0; i < size; i++)
                 for (int j = 0; j < size; j++)
                     polityRelationMatrix[i, j] = PolityRelation.Neutral;
+            SerializePolityRelationMatrix();
             ValidatePolityRelationMatrix();
         }
         void ValidatePolityRelationMatrix()
         {
+            LoadPolityRelationMatrix();
             if (polityRelationMatrix == null ||
                 polityRelationMatrix.GetLength(0) != polities.Length ||
                 polityRelationMatrix.GetLength(1) != polities.Length)
@@ -76,14 +81,51 @@ namespace KhiemLuong
             for (int i = 0; i < polities.Length; i++)
             {
                 if (nameIndex.ContainsKey(polities[i].name))
-                    Debug.LogWarning($"Duplicate polity name found: {polities[i].name} at index {i}, first found at index {nameIndex[polities[i].name]}");
+                    Debug.LogWarning($"Duplicate name found: {polities[i].name} at {i}");
                 else nameIndex[polities[i].name] = i;
             }
         }
+        [ContextMenu("Load Polity Relation Matrix")]
+        // Unity can't serialize & deserialize matrices, so this is a custom approach around it.
+        void LoadPolityRelationMatrix() =>
+            polityRelationMatrix = DeserializePolityRelationMatrixMatrix();
 
         /* -------------------------------------------------------------------------- */
         /*                             PUBLIC API METHODS                             */
         /* -------------------------------------------------------------------------- */
+
+        /* ------------------------------- SERIALIZERS ------------------------------ */
+        public string SerializePolityRelationMatrix(PolityRelation[,] polityRelationMatrix)
+        {
+            PolityRelationMatrixWrapper wrapper = new()
+            {
+                rows = polityRelationMatrix.GetLength(0),
+                columns = polityRelationMatrix.GetLength(1)
+            };
+
+            for (int i = 0; i < wrapper.rows; i++)
+                for (int j = 0; j < wrapper.columns; j++)
+                    wrapper.relations.Add(polityRelationMatrix[i, j]);
+            polityRelationMatrixString = JsonUtility.ToJson(wrapper);
+            return polityRelationMatrixString;
+        }
+
+        public string SerializePolityRelationMatrix() =>
+            SerializePolityRelationMatrix(polityRelationMatrix);
+
+        public PolityRelation[,] DeserializePolityRelationMatrixMatrix(string json)
+        {
+            if (json.Equals("")) return null;
+            PolityRelationMatrixWrapper wrapper = JsonUtility.FromJson<PolityRelationMatrixWrapper>(json);
+            PolityRelation[,] matrix = new PolityRelation[wrapper.rows, wrapper.columns];
+            int index = 0;
+            for (int i = 0; i < wrapper.rows; i++)
+                for (int j = 0; j < wrapper.columns; j++)
+                    matrix[i, j] = wrapper.relations[index++];
+            return matrix;
+        }
+        public PolityRelation[,] DeserializePolityRelationMatrixMatrix() =>
+            DeserializePolityRelationMatrixMatrix(polityRelationMatrixString);
 
         /* --------------------------------- GETTERS -------------------------------- */
         /// <summary>
@@ -100,7 +142,7 @@ namespace KhiemLuong
             { Debug.LogError("One or both polity names not found."); return default; }
 
             PolityRelation relation = polityRelationMatrix[yourIndex, theirIndex];
-            Debug.Log($"Relationship between {yourPolityName} & {theirPolityName} is {relation} at {yourIndex},{theirIndex}");
+            Debug.Log($"Relationship w/ {yourPolityName} & {theirPolityName}: {relation} ({yourIndex},{theirIndex})");
             return relation;
         }
 
@@ -177,7 +219,7 @@ namespace KhiemLuong
         /// <summary>
         /// Sets a new relation of one polity to another by their name, to FactionRelation
         /// </summary>
-        /// <param name="theirPolityName">The string of the polity name that is selected, retrieved from polityName in PolityMember.</param>
+        /// <param name="theirPolityName">The string of the polity name that is selected.</param>
         /// <param name="newRelation">The new relation to set; Neutral, Allies or Enemies</param>
         public void ModifyPolityRelation(string thisPolityName, string theirPolityName, PolityRelation newRelation)
         {
@@ -269,6 +311,32 @@ namespace KhiemLuong
         }
 
         /* -------------------------------------------------------------------------- */
+        /*                                POLITYSTRUCT                                */
+        /* -------------------------------------------------------------------------- */
+        /// <summary>
+        /// This struct declares a specific polity's name, class and faction.
+        /// </summary>
+        public struct PolityStruct
+        {
+            /// <summary>
+            /// The selected polity name.
+            /// </summary>
+            public string polityName;
+            public bool isPolityLeader;
+            /// <summary>
+            /// The selected class within the polityName.
+            /// </summary>
+            public string className;
+            public bool isClassLeader;
+            /// <summary>
+            /// The selected faction within the className.
+            /// </summary>
+            public string factionName;
+            public bool isFactionLeader;
+
+        }
+
+        /* -------------------------------------------------------------------------- */
         /*                             SERIALIZED CLASSES                             */
         /* -------------------------------------------------------------------------- */
         /// <summary>
@@ -321,32 +389,6 @@ namespace KhiemLuong
             [Tooltip("The leader of this unit, e.g. an emperor, queen or manager.")]
             // [JsonIgnore]
             public PolityMember leader;
-        }
-
-        /* -------------------------------------------------------------------------- */
-        /*                                POLITYSTRUCT                                */
-        /* -------------------------------------------------------------------------- */
-        /// <summary>
-        /// This struct declares a specific polity's name, class and faction.
-        /// </summary>
-        public struct PolityStruct
-        {
-            /// <summary>
-            /// The selected polity name.
-            /// </summary>
-            public string polityName;
-            public bool isPolityLeader;
-            /// <summary>
-            /// The selected class within the polityName.
-            /// </summary>
-            public string className;
-            public bool isClassLeader;
-            /// <summary>
-            /// The selected faction within the className.
-            /// </summary>
-            public string factionName;
-            public bool isFactionLeader;
-
         }
     }
 }

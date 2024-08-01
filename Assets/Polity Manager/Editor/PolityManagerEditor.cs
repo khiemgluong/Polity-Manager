@@ -24,16 +24,6 @@ namespace KhiemLuong
             SerializedProperty dontDestroyOnLoad = serializedObject.FindProperty("dontDestroyOnLoad");
             EditorGUILayout.PropertyField(dontDestroyOnLoad, true);
 
-            if (EditorGUI.EndChangeCheck())
-            {
-                serializedObject.ApplyModifiedProperties();
-                EditorUtility.SetDirty(manager);
-            }
-
-            GUIStyle centeredStyle = new(GUI.skin.label)
-            { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            EditorGUILayout.LabelField("Polity Relation Matrix", centeredStyle);
-
             /* ----------------------------- BEGIN VERTICAL ----------------------------- */
             GUILayout.BeginVertical();
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
@@ -88,7 +78,12 @@ namespace KhiemLuong
                     EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
 
             // Save changes
-            if (GUI.changed) EditorUtility.SetDirty(manager);
+            if (GUI.changed)
+            {
+                if (!Application.isPlaying)
+                    manager.SerializePolityRelationMatrix();
+                serializedObject.ApplyModifiedProperties(); EditorUtility.SetDirty(manager);
+            }
         }
 
         void RotateText(Rect rect, string text, float angle)
