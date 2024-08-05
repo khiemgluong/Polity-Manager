@@ -381,13 +381,11 @@ namespace KhiemLuong
             /// Can represent a standard, vexillum, ensign, coat of arms or a team color.
             /// </summary>
             [Tooltip("A standard, vexillum, ensign, coat of arms or a team color.")]
-            // [JsonIgnore]
             public Texture2D emblem;
             /// <summary>
             /// The leader of this specific unit, e.g. an emperor, queen or manager.
             /// </summary>
             [Tooltip("The leader of this unit, e.g. an emperor, queen or manager.")]
-            // [JsonIgnore]
             public PolityMember leader;
         }
     }

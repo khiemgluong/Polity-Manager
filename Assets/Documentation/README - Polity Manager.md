@@ -1,7 +1,7 @@
 # Polity Manager - Manage Factions, Teams & Families
 
+- [Polity Manager - Manage Factions, Teams \& Families](#polity-manager---manage-factions-teams--families)
   - [Description](#description)
-    - [Use Cases](#use-cases)
   - [Quickstart](#quickstart)
     - [Video Tutorial](#video-tutorial)
     - [Demo Tutorial](#demo-tutorial)
@@ -13,6 +13,8 @@
       - [GetPolityLeader()](#getpolityleader)
       - [AddFactionToPolity()](#addfactiontopolity)
       - [RemoveFactionFromPolity()](#removefactionfrompolity)
+      - [SerializePolityRelationMatrix()](#serializepolityrelationmatrix)
+      - [DeserializePolityRelationMatrix()](#deserializepolityrelationmatrix)
     - [PolityMember.cs](#politymembercs)
       - [ChangeMemberPolity()](#changememberpolity)
       - [SetAsPolityLeader()](#setaspolityleader)
@@ -61,8 +63,6 @@ To connect these polities to a prefab GameObject, the `PolityMember.cs` componen
 >![PolityMember](PolityMember.png)
 >
 >The Shogunate polity has a Daimyo class, and that class contains a faction called the Nissan Clan.
-
-### Use Cases
 
 Polity Manager is suited for games that needs to manage various groups of NPCs, especially when these relationships are a bit more complex, such as when one NPC needs to react to an enemy of one or more allied NPCs. However, it can also be applicable to simple teams or solo duels.
 
@@ -153,7 +153,27 @@ Removes a faction of a polity, if the PolityStruct polityName, className and fac
 |--------------------|------------------|-------------|
 | `_struct`     | `PolityStruct`   | The PolityStruct which must include a polityName, className and factionName. |
 
-v**Returns**
+**Returns**
+The `PolityRelation[,]` matrix which was deserialized from the string.
+
+#### SerializePolityRelationMatrix()
+
+Serializes the `PolityRelation[,]` matrix and sets the serialized `polityRelationMatrixString` to its return value.
+| Parameter          | Type             | Description |
+|--------------------|------------------|-------------|
+| `polityRelationMatrix`     | `PolityRelation[,]`   | The 2D PolityRelation matrix. This can be omitted which will use the Singleton's `polityRelationMatrix`. |
+
+**Returns**
+The `string` of that serialized matrix.
+
+#### DeserializePolityRelationMatrix()
+
+Deserializes a string representing the `PolityRelation[,]` matrix.
+| Parameter          | Type             | Description |
+|--------------------|------------------|-------------|
+| `json`     | `string`   | This can be omitted which will then use the Singleton's `polityRelationMatrixString`. |
+
+**Returns**
 The `PolityRelation[,]` matrix which was deserialized from the string.
 
 ### PolityMember.cs
@@ -314,13 +334,7 @@ Also note that it has a child assigned from the graph, who belongs to a differen
 
 ## Credits
 
-Mon of the Tokugawa clan of Tokugawa Shogunate
-By Hyakurakuto - CC BY-SA 3.0, <https://commons.wikimedia.org/w/index.php?curid=1056853>
-
-Laurel Wreath free icon
-By Freepik - Flaticon License, <https://www.flaticon.com/free-icon/laurel-wreath_6024978>
-
-PBR Ground texture
+PBR Sand054 texture
 [ambientcg.com](https://ambientcg.com) - CC0 License
 
 **Polity Manager** was developed by Khiem Luong ([github.com/khiemgluong](https://github.com/khiemgluong))
@@ -329,4 +343,5 @@ PBR Ground texture
 
 1: Polity - Represents the largest & most important political unit such as a government body, corporation or main team.<br>
 2: Class - Represents a social class, government branch, organization, or any large collective corp.<br>
-3: Faction - Represents a small and temporary political unit, which can be added and removed at runtime.
+3: Faction - Represents a small and temporary political unit, which can be added and removed at runtime.<br>
+4: RelationType - an enum value representing the current relationship between 2 polities; declared as Neutral, Allies and Enemies.

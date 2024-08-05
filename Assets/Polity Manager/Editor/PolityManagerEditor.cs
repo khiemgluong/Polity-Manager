@@ -24,6 +24,9 @@ namespace KhiemLuong
             SerializedProperty dontDestroyOnLoad = serializedObject.FindProperty("dontDestroyOnLoad");
             EditorGUILayout.PropertyField(dontDestroyOnLoad, true);
 
+            /* -------------------------------------------------------------------------- */
+            /*                           POLITY RELATION MATRIX                           */
+            /* -------------------------------------------------------------------------- */
             /* ----------------------------- BEGIN VERTICAL ----------------------------- */
             GUILayout.BeginVertical();
             scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
@@ -73,6 +76,9 @@ namespace KhiemLuong
             }
             EditorGUILayout.EndScrollView(); GUILayout.EndVertical();
             /* ------------------------------ END VERTICAL ------------------------------ */
+            /* -------------------------------------------------------------------------- */
+            /*                         END POLITY RELATION MATRIX                         */
+            /* -------------------------------------------------------------------------- */
 
             if (!Application.isPlaying) if (GUILayout.Button("Member Family Graph"))
                     EditorWindow.GetWindow<PolityMemberGraph>("Polity Manager");
