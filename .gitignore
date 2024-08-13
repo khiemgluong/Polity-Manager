@@ -30,6 +30,9 @@
 /Assets/*.aif
 /Assets/*.m4a
 
+!README.md
+!/Assets/Documentation/*
+/Assets/Documentation/*.meta
 
 # Now recursively whitelist folders inside Assets to keep the structure
 !/Assets/**/
