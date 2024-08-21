@@ -50,7 +50,7 @@ namespace KhiemLuong
                 // Create a grid but only for entries above the diagonal
                 for (int j = manager.polities.Length - 1; j > i; j--) // Note the condition and the decrement
                 {
-                    string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.polityRelationMatrix[i, j]}";
+                    string tooltipText = $"{manager.polities[i].name} & {manager.polities[j].name} | {manager.PolityRelationMatrix[i, j]}";
                     GUIContent buttonContent = new GUIContent("", tooltipText);  // Tooltip text as the second parameter
                     Rect gridRect = EditorGUILayout.GetControlRect(GUILayout.Width(gridSize), GUILayout.Height(gridSize));
 
@@ -59,16 +59,16 @@ namespace KhiemLuong
                         switch (Event.current.button)
                         {
                             case 0: // Left mouse button
-                                manager.polityRelationMatrix[i, j] = GetNextRelationship(manager.polityRelationMatrix[i, j]); break;
+                                manager.PolityRelationMatrix[i, j] = GetNextRelationship(manager.PolityRelationMatrix[i, j]); break;
                             case 1: // Right mouse button
-                                manager.polityRelationMatrix[i, j] = GetBackRelationship(manager.polityRelationMatrix[i, j]); break;
+                                manager.PolityRelationMatrix[i, j] = GetBackRelationship(manager.PolityRelationMatrix[i, j]); break;
                             default: return;
                         }
-                        manager.polityRelationMatrix[j, i] = manager.polityRelationMatrix[i, j];//Set reciprocal
+                        manager.PolityRelationMatrix[j, i] = manager.PolityRelationMatrix[i, j];//Set reciprocal
                         if (Application.isPlaying) OnRelationChange?.Invoke();
                     }
 
-                    Color color = GetColorForRelationship(manager.polityRelationMatrix[i, j]);
+                    Color color = GetColorForRelationship(manager.PolityRelationMatrix[i, j]);
                     EditorGUI.DrawRect(gridRect, color);
                     GUI.Label(gridRect, ""); // Optionally add labels or icons
                 }

@@ -72,7 +72,7 @@ namespace KhiemLuong
         {
             if (allyEnemyTarget != null)
             {
-                PolityRelation relation = PM.GetPolityRelation(member, allyEnemyTarget);
+                PolityRelation relation = PM.CheckPolityRelation(member, allyEnemyTarget);
                 switch (relation)
                 {
                     case PolityRelation.Allies:
@@ -89,7 +89,7 @@ namespace KhiemLuong
             }
             else if (enemyTarget != null)
             {
-                PolityRelation relation = PM.GetPolityRelation(member, enemyTarget);
+                PolityRelation relation = PM.CheckPolityRelation(member, enemyTarget);
                 if (relation == PolityRelation.Neutral)
                 {
                     enemyTarget = null;
@@ -108,7 +108,7 @@ namespace KhiemLuong
                 if (hitCollider.TryGetComponent<PolityMember>(out var polityMember))
                     if (polityMember != member)
                     {
-                        PolityRelation relation = PM.GetPolityRelation(member, polityMember);
+                        PolityRelation relation = PM.CheckPolityRelation(member, polityMember);
                         switch (relation)
                         {
                             case PolityRelation.Allies:

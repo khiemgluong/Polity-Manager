@@ -7,8 +7,8 @@
     - [Demo Tutorial](#demo-tutorial)
   - [Public APIs](#public-apis)
     - [PolityManager.cs](#politymanagercs)
-      - [ModifyPolityRelation()](#modifypolityrelation)
-      - [GetPolityRelation()](#getpolityrelation)
+      - [ChangePolityRelation()](#changepolityrelation)
+      - [CheckPolityRelation()](#checkpolityrelation)
       - [GetPolityEmblem()](#getpolityemblem)
       - [GetPolityLeader()](#getpolityleader)
       - [AddFactionToPolity()](#addfactiontopolity)
@@ -90,7 +90,7 @@ All classes in this package is under the `KhiemLuong` namespace.
 
 All public methods can be called from this PolityManager Singleton, referenced as `PM`, for example PM.ModifyPolityRelation();
 
-#### ModifyPolityRelation()
+#### ChangePolityRelation()
 
 Sets a new relationship status between two polities based on their names, adjusting their relation to either Neutral, Allies, or Enemies.
 If the polities matched, the `OnRelationChange` event will be invoked to notify all subscribers of the relation change.
@@ -99,9 +99,9 @@ If the polities matched, the `OnRelationChange` event will be invoked to notify 
 |--------------------|------------------|-------------|
 | `polityMember`     | `PolityMember`   | The member of the polity initiating the relationship change. |
 | `theirPolityName`  | `string`         | The name of the polity that is targeted for the relationship change, retrieved from `polityName` in `PolityMember`. |
-| `factionRelation`  | `PolityRelation` | The new relation to set; can be `Neutral`, `Allies`, or `Enemies`. |
+| `factionRelation`  | `PolityRelation` | The new relation to set; can be `Neutral`, `Allies`, or `Enemies`.|
 
-#### GetPolityRelation()
+#### CheckPolityRelation()
 
 Compares the PolityRelation of the polityName to the second polityName and returns the enum that indicates their PolityRelation if found.
 The overload method replaces the PolityMember parameters as strings representing the polityName.

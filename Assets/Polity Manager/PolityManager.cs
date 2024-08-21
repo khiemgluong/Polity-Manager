@@ -9,13 +9,13 @@ namespace KhiemLuong
         public static PolityManager PM { get; private set; }
         [Tooltip("The largest, most important organizational unit in your game.")]
         public Polity[] polities;
-        public PolityRelation[,] polityRelationMatrix;
+        public PolityRelation[,] PolityRelationMatrix { get; private set; }
         [SerializeField] string polityRelationMatrixString;
         public enum PolityRelation
         {
             Neutral,
             Allies,
-            Enemies
+            Enemies,
         }
 
         [Serializable]
@@ -35,6 +35,9 @@ namespace KhiemLuong
                 if (dontDestroyOnLoad)
                     DontDestroyOnLoad(gameObject);
             }
+            int ln = polities.Length;
+            PolityRelationMatrix = new PolityRelation[ln, ln];
+            LoadPolityRelationMatrix();
         }
 
         void OnValidate() { ValidatePolityRelationMatrix(); SerializePolityRelationMatrix(); }
@@ -43,33 +46,33 @@ namespace KhiemLuong
         void ResetPolityRelationMatrix()
         {
             int size = polities.Length;
-            polityRelationMatrix = new PolityRelation[size, size];
+            PolityRelationMatrix = new PolityRelation[size, size];
             for (int i = 0; i < size; i++)
                 for (int j = 0; j < size; j++)
-                    polityRelationMatrix[i, j] = PolityRelation.Neutral;
+                    PolityRelationMatrix[i, j] = PolityRelation.Neutral;
             SerializePolityRelationMatrix();
             ValidatePolityRelationMatrix();
         }
         void ValidatePolityRelationMatrix()
         {
             LoadPolityRelationMatrix();
-            if (polityRelationMatrix == null ||
-                polityRelationMatrix.GetLength(0) != polities.Length ||
-                polityRelationMatrix.GetLength(1) != polities.Length)
+            if (PolityRelationMatrix == null ||
+                PolityRelationMatrix.GetLength(0) != polities.Length ||
+                PolityRelationMatrix.GetLength(1) != polities.Length)
             {
                 // Create a temporary matrix to hold existing data
                 PolityRelation[,] tempMatrix = new PolityRelation[polities.Length, polities.Length];
-                if (polityRelationMatrix != null)
+                if (PolityRelationMatrix != null)
                 {
-                    int minRows = Mathf.Min(polityRelationMatrix.GetLength(0), polities.Length);
-                    int minCols = Mathf.Min(polityRelationMatrix.GetLength(1), polities.Length);
+                    int minRows = Mathf.Min(PolityRelationMatrix.GetLength(0), polities.Length);
+                    int minCols = Mathf.Min(PolityRelationMatrix.GetLength(1), polities.Length);
 
                     for (int i = 0; i < minRows; i++)
                         for (int j = 0; j < minCols; j++)
-                            tempMatrix[i, j] = polityRelationMatrix[i, j];
+                            tempMatrix[i, j] = PolityRelationMatrix[i, j];
                 }
                 // Replace the old matrix with the new matrix of appropriate size
-                polityRelationMatrix = tempMatrix;
+                PolityRelationMatrix = tempMatrix;
                 CheckForDuplicatePolityNames();
             }
         }
@@ -88,7 +91,7 @@ namespace KhiemLuong
         [ContextMenu("Load Polity Relation Matrix")]
         // Unity can't serialize & deserialize matrices, so this is a custom approach around it.
         void LoadPolityRelationMatrix() =>
-            polityRelationMatrix = DeserializePolityRelationMatrixMatrix();
+            PolityRelationMatrix = DeserializePolityRelationMatrixMatrix();
 
         /* -------------------------------------------------------------------------- */
         /*                             PUBLIC API METHODS                             */
@@ -111,7 +114,7 @@ namespace KhiemLuong
         }
 
         public string SerializePolityRelationMatrix() =>
-            SerializePolityRelationMatrix(polityRelationMatrix);
+            SerializePolityRelationMatrix(PolityRelationMatrix);
 
         public PolityRelation[,] DeserializePolityRelationMatrixMatrix(string json)
         {
@@ -132,16 +135,16 @@ namespace KhiemLuong
         /// Gets the current PolityRelation from one PolityMember to another.
         /// </summary>
         /// <returns>The PolityRelation enum as Neutral, Allies, or Enemies.</returns>
-        public PolityRelation GetPolityRelation(PolityMember polityMember, PolityMember theirPolityMember) =>
-               GetPolityRelation(polityMember.polityName, theirPolityMember.polityName);
-        public PolityRelation GetPolityRelation(string yourPolityName, string theirPolityName)
+        public PolityRelation CheckPolityRelation(PolityMember polityMember, PolityMember theirPolityMember) =>
+               CheckPolityRelation(polityMember.polityName, theirPolityMember.polityName);
+        public PolityRelation CheckPolityRelation(string yourPolityName, string theirPolityName)
         {
             int yourIndex = Array.FindIndex(polities, p => p.name == yourPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
             if (yourIndex == -1 || theirIndex == -1)
             { Debug.LogError("One or both polity names not found."); return default; }
 
-            PolityRelation relation = polityRelationMatrix[yourIndex, theirIndex];
+            PolityRelation relation = PolityRelationMatrix[yourIndex, theirIndex];
             Debug.Log($"Relationship w/ {yourPolityName} & {theirPolityName}: {relation} ({yourIndex},{theirIndex})");
             return relation;
         }
@@ -221,23 +224,28 @@ namespace KhiemLuong
         /// </summary>
         /// <param name="theirPolityName">The string of the polity name that is selected.</param>
         /// <param name="newRelation">The new relation to set; Neutral, Allies or Enemies</param>
-        public void ModifyPolityRelation(string thisPolityName, string theirPolityName, PolityRelation newRelation)
+        public void ChangePolityRelation(string thisPolityName, string theirPolityName, PolityRelation newRelation)
         {
             int thisIndex = Array.FindIndex(polities, p => p.name == thisPolityName);
             int theirIndex = Array.FindIndex(polities, p => p.name == theirPolityName);
+            if (thisPolityName.Equals(theirPolityName))
+            {
+                Debug.LogWarning($"Cannot change identical polities {thisPolityName}.");
+                return;
+            }
             if (thisIndex == -1 || theirIndex == -1)
             {
                 Debug.LogError("One or both polity names not found.");
                 return;
             }
-            polityRelationMatrix[thisIndex, theirIndex] = newRelation;
-            polityRelationMatrix[theirIndex, thisIndex] = newRelation;
+            PolityRelationMatrix[thisIndex, theirIndex] = newRelation;
+            PolityRelationMatrix[theirIndex, thisIndex] = newRelation;
             OnRelationChange?.Invoke();
             Debug.Log($"Set relation between {thisPolityName} & {theirPolityName} to {newRelation}");
         }
 
-        public void ModifyPolityRelation(PolityMember polityMember, string theirPolityName, PolityRelation newRelation)
-            => ModifyPolityRelation(polityMember.polityName, theirPolityName, newRelation);
+        public void ChangePolityRelation(PolityMember polityMember, string theirPolityName, PolityRelation newRelation)
+            => ChangePolityRelation(polityMember.polityName, theirPolityName, newRelation);
 
         /// <summary>
         /// Adds a faction to a polity, requiring a matching polityName and className to work.
